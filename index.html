@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kebun Sawit">
+<title>Manajemen Kebun Sawit</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
+.topbar{background:#1D9E75;color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar h1{font-size:16px;font-weight:700;letter-spacing:.01em}
+.nav{display:flex;overflow-x:auto;background:#fff;border-bottom:1px solid #e0e0e0;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:sticky;top:44px;z-index:99}
+.nav::-webkit-scrollbar{display:none}
+.nav-btn{flex:0 0 auto;padding:11px 15px;border:none;border-bottom:2.5px solid transparent;background:transparent;color:#888;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+.nav-btn.active{color:#1D9E75;border-bottom-color:#1D9E75;font-weight:700}
+.content{padding:12px}
+.panel{display:none}.panel.active{display:block}
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #e8e8e8}
+.card-title{font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
+.form-group{margin-bottom:10px}
+.form-group label{font-size:12px;color:#666;display:block;margin-bottom:4px;font-weight:600}
+select,input[type=text],input[type=number],input[type=date]{width:100%;padding:11px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#1a1a1a;font-size:15px;-webkit-appearance:none;outline:none}
+select:focus,input:focus{border-color:#1D9E75}
+.btn{display:block;width:100%;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;text-align:center;margin-top:6px}
+.btn-green{background:#1D9E75;color:#fff}
+.btn-green:active{background:#0F6E56}
+.btn-blue{background:#185FA5;color:#fff}
+.btn-blue:active{background:#0C447C}
+.btn-orange{background:#E67E22;color:#fff}
+.btn-sm{display:inline-block;width:auto;padding:7px 14px;font-size:13px;margin:0;border-radius:7px}
+.btn-red{background:#fee;color:#c0392b;border:1px solid #fcc}
+.btn-gray{background:#f0f0f0;color:#444;border:none}
+.metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.metric-row-2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.metric{background:#fff;border-radius:10px;padding:12px 8px;text-align:center;border:1px solid #e8e8e8}
+.metric-val{font-size:20px;font-weight:700;color:#1D9E75}
+.metric-lbl{font-size:11px;color:#888;margin-top:2px}
+.item-card{background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:12px;margin-bottom:8px}
+.item-title{font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:4px}
+.item-sub{font-size:12px;color:#666;line-height:1.8}
+.item-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.b-green{background:#e1f5ee;color:#085041}
+.b-amber{background:#faeeda;color:#633806}
+.b-blue{background:#e6f1fb;color:#0C447C}
+.b-red{background:#fee;color:#c0392b}
+.b-gray{background:#f0f0f0;color:#555}
+.b-purple{background:#eeedfe;color:#3C3489}
+.b-orange{background:#fef0e6;color:#8B4000}
+.cal-wrap{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:8px}
+.cal-cell{border:1px solid #eee;border-radius:6px;padding:6px 2px;text-align:center;background:#fafafa}
+.cal-mn{font-size:10px;color:#888;margin-bottom:3px}
+.dot-wrap{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;min-height:10px}
+.dot{width:7px;height:7px;border-radius:50%}
+.empty{text-align:center;padding:28px;color:#aaa;font-size:14px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
+.info-row:last-child{border-bottom:none}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.section-lbl{font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:9999;display:none;white-space:nowrap;max-width:90vw;text-align:center}
+.loading{text-align:center;padding:20px;color:#888;font-size:14px}
+.rekap-card{border:1px solid #e8e8e8;border-radius:10px;overflow:hidden;margin-bottom:10px}
+.rekap-head{background:#f5f5f0;padding:10px 14px;font-size:13px;font-weight:700}
+.rekap-body{padding:8px 14px;background:#fff}
+.online-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,0.2);color:#fff}
+.dot-online{width:7px;height:7px;border-radius:50%;background:#7dffc4}
+.dot-offline{width:7px;height:7px;border-radius:50%;background:#ff7d7d}
+.alert-card{border-radius:10px;padding:12px 14px;margin-bottom:8px;border-left:4px solid}
+.alert-merah{background:#fff5f5;border-color:#E24B4A}
+.alert-kuning{background:#fffbf0;border-color:#EF9F27}
+.alert-hijau{background:#f0faf5;border-color:#1D9E75}
+.alert-title{font-size:13px;font-weight:700;margin-bottom:2px}
+.alert-sub{font-size:12px;color:#666}
+.log-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #f5f5f5}
+.log-item:last-child{border-bottom:none}
+.log-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.log-body{flex:1}
+.log-title{font-size:13px;font-weight:600;color:#1a1a1a}
+.log-meta{font-size:11px;color:#888;margin-top:2px}
+.tab-inner{display:flex;gap:0;border-bottom:1px solid #eee;margin-bottom:12px}
+.tab-inner-btn{flex:1;padding:9px 6px;border:none;background:transparent;color:#888;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;text-align:center}
+.tab-inner-btn.active{color:#1D9E75;border-bottom-color:#1D9E75;font-weight:700}
+.realisasi-sum{background:#f0faf5;border-radius:8px;padding:10px 12px;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Kebun Sawit</h1>
+  <div id="conn-status" class="online-badge"><span class="dot-offline" id="conn-dot"></span><span id="conn-txt">Menghubungkan...</span></div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="switchTab('dashboard',this)">Dashboard</button>
+  <button class="nav-btn" onclick="switchTab('lahan',this)">Lahan</button>
+  <button class="nav-btn" onclick="switchTab('pupuk',this)">Pupuk</button>
+  <button class="nav-btn" onclick="switchTab('panen',this)">Panen</button>
+  <button class="nav-btn" onclick="switchTab('realisasi',this)">Realisasi</button>
+  <button class="nav-btn" onclick="switchTab('pruning',this)">Pruning</button>
+  <button class="nav-btn" onclick="switchTab('racun',this)">Herbisida</button>
+  <button class="nav-btn" onclick="switchTab('log',this)">Histori</button>
+  <button class="nav-btn" onclick="switchTab('rekap',this)">Rekap</button>
+</div>
+
+<div class="content">
+
+<!-- DASHBOARD -->
+<div id="p-dashboard" class="panel active">
+  <div id="alert-box"></div>
+  <div class="metric-row">
+    <div class="metric"><div class="metric-val" id="d-lahan">-</div><div class="metric-lbl">Lahan aktif</div></div>
+    <div class="metric"><div class="metric-val" id="d-ha">-</div><div class="metric-lbl">Total ha</div></div>
+    <div class="metric"><div class="metric-val" id="d-pokok">-</div><div class="metric-lbl">Total pokok</div></div>
+  </div>
+  <div class="metric-row-2">
+    <div class="metric"><div class="metric-val" id="d-panen-bulan" style="font-size:16px">-</div><div class="metric-lbl">Panen bulan ini (kg)</div></div>
+    <div class="metric"><div class="metric-val" id="d-income-bulan" style="font-size:16px;color:#E67E22">-</div><div class="metric-lbl">Pendapatan bulan ini</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Jadwal minggu ini</div>
+    <div id="d-minggu"><div class="loading">Memuat...</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Aktivitas bulan ini — <span id="d-bulan"></span></div>
+    <div id="d-aktivitas"><div class="loading">Memuat...</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Status semua lahan</div>
+    <div id="d-status"><div class="loading">Memuat...</div></div>
+  </div>
+  <button class="btn btn-blue" onclick="exportCSV()" style="margin-top:4px">Export semua data ke CSV</button>
+</div>
+
+<!-- LAHAN -->
+<div id="p-lahan" class="panel">
+  <div class="card">
+    <div class="card-title">Tambah / edit data lahan</div>
+    <div class="form-group"><label>Pilih lahan</label><select id="l-nama" onchange="isiFormLahan(this.value)"><option value="">-- pilih --</option></select></div>
+    <div class="grid2">
+      <div class="form-group"><label>Luas (ha)</label><input type="number" id="l-ha" placeholder="5.5" step="0.1" min="0"></div>
+      <div class="form-group"><label>Jumlah pokok</label><input type="number" id="l-pokok" placeholder="150" min="0"></div>
+    </div>
+    <div class="grid2">
+      <div class="form-group"><label>Tahun tanam</label><input type="number" id="l-tahun" placeholder="2015" min="2000" max="2030"></div>
+      <div class="form-group"><label>Jarak tanam (m)</label><input type="number" id="l-jarak" placeholder="9" step="0.5" min="0"></div>
+    </div>
+    <div class="grid2">
+      <div class="form-group"><label>Kondisi</label><select id="l-kondisi"><option>Baik</option><option>Sedang</option><option>Perlu perhatian</option></select></div>
+      <div class="form-group"><label>Topografi</label><select id="l-topo"><option>Datar</option><option>Berbukit</option><option>Gambut</option></select></div>
+    </div>
+    <div class="form-group"><label>Keterangan</label><input type="text" id="l-ket" placeholder="catatan tambahan"></div>
+    <button class="btn btn-green" onclick="simpanLahan()">Simpan data lahan</button>
+  </div>
+  <div class="section-lbl">Lahan terdaftar</div>
+  <div id="list-lahan"><div class="loading">Memuat...</div></div>
+</div>
+
+<!-- PUPUK -->
+<div id="p-pupuk" class="panel">
+  <div class="card">
+    <div class="card-title">Tambah jadwal pemupukan</div>
+    <div class="form-group"><label>Lahan</label><select id="pup-lahan"><option value="">-- pilih --</option></select></div>
+    <div class="form-group"><label>Jenis pupuk</label>
+      <select id="pup-jenis"><option>Urea (N)</option><option>MOP/KCl (K)</option><option>TSP/SP-36 (P)</option><option>Dolomit (Mg)</option><option>Borate (B)</option><option>PKSC/Janjang kosong</option><option>NPK Majemuk</option><option>Kiserit</option></select>
+    </div>
+    <div class="grid2">
+      <div class="form-group"><label>Dosis/pokok (kg)</label><input type="number" id="pup-dosis" placeholder="2" step="0.25" min="0"></div>
+      <div class="form-group"><label>Metode</label><select id="pup-metode"><option>Tebar melingkar</option><option>Piringan</option><option>Larikan</option><option>Semprot daun</option></select></div>
+    </div>
+    <div class="grid2">
+      <div class="form-group"><label>Bulan aplikasi 1</label><select id="pup-bln1"><option value="">--</option></select></div>
+      <div class="form-group"><label>Bulan aplikasi 2</label><select id="pup-bln2"><option value="">--</option></select></div>
+    </div>
+    <div class="form-group"><label>Catatan</label><input type="text" id="pup-ket" placeholder="cth: saat awal hujan"></div>
+    <button class="btn btn-green" onclick="simpanPupuk()">Tambah jadwal</button>
+  </div>
+  <div class="section-lbl">Kalender pemupukan</div>
+  <div class="card"><div id="pup-cal"><div class="loading">Memuat...</div></div></div>
+  <div class="section-lbl">Daftar jadwal</div>
+  <div id="list-pupuk"><div class="loading">Memuat...</div></div>
+</div>
+
+<!-- PANEN (Jadwal Estimasi) -->
+<div id="p-panen" class="panel">
+  <div class="card">
+    <div class="card-title">Jadwal panen (estimasi)</div>
+    <div class="form-group"><label>Lahan</label><select id="pan-lahan"><option value="">-- pilih --</option></select></div>
+    <div class="grid2">
+      <div class="form-group"><label>Rotasi (hari)</label><select id="pan-rotasi"><option value="7">7 hari</option><option value="10">10 hari</option><option value="14" selected>14 hari</option><option value="21">21 hari</option></select></div>
+      <div class="form-group"><label>BJR (kg/jjg)</label><input type="number" id="pan-bjr" placeholder="15" step="0.5" min="1"></div>
+    </div>
+    <div class="grid2">
+      <div class="form-group"><label>AKP (%)</label><input type="number" id="pan-akp" placeholder="70" min="1" max="100"></div>
+      <div class="form-group"><label>Harga TBS (Rp/kg)</label><input type="number" id="pan-harga" placeholder="2200"></div>
+    </div>
+    <div class="form-group"><label>Bulan mulai</label><select id="pan-mulai"><option value="">--</option></select></div>
+    <button class="btn btn-green" onclick="simpanPanen()">Simpan jadwal panen</button>
+  </div>
+  <div class="metric-row">
+    <div class="metric"><div class="metric-val" id="pan-tot-pokok">-</div><div class="metric-lbl">Pokok dipanen</div></div>
+    <div class="metric"><div class="metric-val" id="pan-tot-kg">-</div><div class="metric-lbl">kg/rotasi</div></div>
+    <div class="metric"><div class="metric-val" id="pan-tot-income">-</div><div class="metric-lbl">Est. Rp/bln</div></div>
+  </div>
+  <div class="section-lbl">Daftar jadwal panen</div>
+  <div id="list-panen"><div class="loading">Memuat...</div></div>
+</div>
+
+<!-- REALISASI PANEN -->
+<div id="p-realisasi" class="panel">
+  <div class="card">
+    <div class="card-title">Input realisasi panen</div>
+    <div class="form-group"><label>Lahan</label><select id="rea-lahan"><option value="">-- pilih --</option></select></div>
+    <div class="form-group"><label>Tanggal panen</label><input type="date" id="rea-tanggal"></div>
+    <div class="grid2">
+      <div class="form-group"><label>Jumlah janjang (jjg)</label><input type="number" id="rea-jjg" placeholder="cth: 80" min="0"></div>
+      <div class="form-group"><label>Berat aktual (kg)</label><input type="number" id="rea-kg" placeholder="cth: 1200" min="0"></div>
+    </div>
+    <div class="grid2">
+      <div class="form-group"><label>Harga aktual (Rp/kg)</label><input type="number" id="rea-harga" placeholder="cth: 2300"></div>
+      <div class="form-group"><label>Keterangan</label><input type="text" id="rea-ket" placeholder="cth: sortasi baik"></div>
+    </div>
+    <button class="btn btn-orange" onclick="simpanRealisasi()">Catat hasil panen</button>
+  </div>
+
+  <div class="section-lbl">Filter lahan</div>
+  <div style="overflow-x:auto;white-space:nowrap;margin-bottom:10px">
+    <button class="btn-sm btn-gray" style="margin-right:6px;display:inline-block" onclick="filterRealisasi('')">Semua</button>
+    <span id="rea-filter-btns"></span>
+  </div>
+
+  <div id="rea-summary" class="realisasi-sum" style="display:none">
+    <div class="grid3">
+      <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#1D9E75" id="rs-kg">0</div><div style="font-size:11px;color:#666">Total kg</div></div>
+      <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#E67E22" id="rs-income">0</div><div style="font-size:11px;color:#666">Total Rp</div></div>
+      <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#185FA5" id="rs-rot">0</div><div style="font-size:11px;color:#666">Rotasi</div></div>
+    </div>
+  </div>
+
+  <div class="section-lbl">Riwayat panen</div>
+  <div id="list-realisasi"><div class="loading">Memuat...</div></div>
+</div>
+
+<!-- PRUNING -->
+<div id="p-pruning" class="panel">
+  <div class="card">
+    <div class="card-title">Tambah jadwal pruning</div>
+    <div class="form-group"><label>Lahan</label><select id="pru-lahan"><option value="">-- pilih --</option></select></div>
+    <div class="form-group"><label>Jenis pruning</label>
+      <select id="pru-jenis"><option>Sanitasi (pelepah kering)</option><option>Songgo 2</option><option>Songgo 1</option><option>Kastrasi (pohon muda)</option></select>
+    </div>
+    <div class="grid2">
+      <div class="form-group"><label>Frekuensi</label><select id="pru-frek"><option>1x setahun</option><option>2x setahun</option><option>Per rotasi panen</option><option>Insidental</option></select></div>
+      <div class="form-group"><label>Bulan pelaksanaan</label><select id="pru-bulan"><option value="">--</option></select></div>
+    </div>
+    <div class="form-group"><label>Upah/pokok (Rp)</label><input type="number" id="pru-upah" placeholder="1500" min="0"></div>
+    <div class="form-group"><label>Catatan</label><input type="text" id="pru-ket" placeholder="catatan pruning"></div>
+    <button class="btn btn-green" onclick="simpanPruning()">Tambah jadwal</button>
+  </div>
+  <div class="section-lbl">Daftar jadwal pruning</div>
+  <div id="list-pruning"><div class="loading">Memuat...</div></div>
+</div>
+
+<!-- HERBISIDA -->
+<div id="p-racun" class="panel">
+  <div class="card">
+    <div class="card-title">Tambah jadwal herbisida</div>
+    <div class="form-group"><label>Lahan</label><select id="rac-lahan"><option value="">-- pilih --</option></select></div>
+    <div class="form-group"><label>Jenis herbisida</label>
+      <select id="rac-jenis"><option>Glifosat (Round-up)</option><option>Parakuat (Gramoxone)</option><option>Metil Metsulfuron</option><option>Fluroksipir</option><option>2,4-D Amin</option><option>Triklopir</option><option>Campuran (rotasi)</option></select>
+    </div>
+    <div class="grid2">
+      <div class="form-group"><label>Area aplikasi</label><select id="rac-area"><option>Piringan</option><option>Gawangan mati</option><option>Gawangan hidup</option><option>Seluruh areal</option><option>Parit/TPH</option></select></div>
+      <div class="form-group"><label>Dosis (L/ha)</label><input type="number" id="rac-dosis" placeholder="3" step="0.5" min="0"></div>
+    </div>
+    <div class="grid2">
+      <div class="form-group"><label>Frekuensi/tahun</label><select id="rac-frek"><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="6">6x</option></select></div>
+      <div class="form-group"><label>Bulan mulai</label><select id="rac-mulai"><option value="">--</option></select></div>
+    </div>
+    <div class="form-group"><label>Upah aplikasi (Rp/ha)</label><input type="number" id="rac-upah" placeholder="150000" min="0"></div>
+    <div class="form-group"><label>Catatan</label><input type="text" id="rac-ket" placeholder="cth: pakai knapsack"></div>
+    <button class="btn btn-green" onclick="simpanRacun()">Tambah jadwal</button>
+  </div>
+  <div class="section-lbl">Daftar jadwal herbisida</div>
+  <div id="list-racun"><div class="loading">Memuat...</div></div>
+</div>
+
+<!-- HISTORI LOG -->
+<div id="p-log" class="panel">
+  <div class="card">
+    <div class="card-title">Catat aktivitas lapangan</div>
+    <div class="form-group"><label>Lahan</label><select id="log-lahan"><option value="">-- pilih --</option></select></div>
+    <div class="grid2">
+      <div class="form-group"><label>Jenis kegiatan</label>
+        <select id="log-jenis">
+          <option>Pemupukan</option><option>Panen</option><option>Pruning</option>
+          <option>Semprot herbisida</option><option>Pengendalian hama</option>
+          <option>Perbaikan jalan</option><option>Sensus pokok</option><option>Lainnya</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Tanggal</label><input type="date" id="log-tanggal"></div>
+    </div>
+    <div class="grid2">
+      <div class="form-group"><label>Pelaksana</label><input type="text" id="log-pelaksana" placeholder="nama pekerja/mandor"></div>
+      <div class="form-group"><label>Biaya (Rp)</label><input type="number" id="log-biaya" placeholder="0" min="0"></div>
+    </div>
+    <div class="form-group"><label>Keterangan</label><input type="text" id="log-ket" placeholder="detail kegiatan"></div>
+    <button class="btn btn-green" onclick="simpanLog()">Catat aktivitas</button>
+  </div>
+
+  <div style="overflow-x:auto;white-space:nowrap;margin-bottom:10px">
+    <button class="btn-sm btn-gray" style="margin-right:6px;display:inline-block" onclick="filterLog('','')">Semua</button>
+    <span id="log-filter-btns"></span>
+  </div>
+
+  <div class="section-lbl">Riwayat aktivitas</div>
+  <div id="list-log"><div class="loading">Memuat...</div></div>
+</div>
+
+<!-- REKAP -->
+<div id="p-rekap" class="panel">
+  <div class="section-lbl">Ringkasan produksi & biaya</div>
+  <div class="metric-row-2">
+    <div class="metric"><div class="metric-val" id="rek-kg-total" style="font-size:18px">-</div><div class="metric-lbl">Total kg dipanen</div></div>
+    <div class="metric"><div class="metric-val" id="rek-income-total" style="font-size:18px;color:#E67E22">-</div><div class="metric-lbl">Total pendapatan</div></div>
+  </div>
+  <div id="rekap-isi"><div class="loading">Memuat...</div></div>
+  <button class="btn btn-blue" onclick="exportCSV()" style="margin-top:8px">Export semua data ke CSV</button>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://suguhkuaoxszaewbicya.supabase.co';
+const SUPABASE_KEY='sb_publishable_9KvrV7Y8XXF_KBPBaqME3Q_CJSfnhMU';
+const H={'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
+
+const LAHAN_NAMES=['Yurni','Dekol','Torus Ujang','Padang','Telago','SD TLD','Roli','Quari ulu'];
+const MN=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const MNF=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const COLORS=['#1D9E75','#185FA5','#BA7517','#D85A30','#D4537E','#534AB7','#639922','#888780'];
+const LOG_COLORS={'Pemupukan':'#1D9E75','Panen':'#E67E22','Pruning':'#185FA5','Semprot herbisida':'#BA7517','Pengendalian hama':'#D85A30','Perbaikan jalan':'#888780','Sensus pokok':'#534AB7','Lainnya':'#888'};
+
+let cache={lahan:[],pupuk:[],panen:[],pruning:[],racun:[],realisasi:[],log:[]};
+let filterReaLahan='', filterLogLahan='';
+
+async function sb(table,method='GET',body=null,params=''){
+  const url=SUPABASE_URL+'/rest/v1/'+table+(params?'?'+params:'');
+  const opts={method,headers:{...H,'Prefer':'return=representation'}};
+  if(body)opts.body=JSON.stringify(body);
+  const res=await fetch(url,opts);
+  if(!res.ok)throw new Error(await res.text());
+  return method==='DELETE'?[]:res.json();
+}
+
+function fmt(n){return Number(Math.round(n)).toLocaleString('id-ID')}
+function fmtRp(n){return 'Rp '+fmt(n)}
+function fmtK(n){if(n>=1000000)return 'Rp '+(n/1000000).toFixed(1)+'jt';if(n>=1000)return 'Rp '+Math.round(n/1000)+'rb';return fmtRp(n)}
+function todayStr(){return new Date().toISOString().slice(0,10)}
+function parseDate(s){return new Date(s+'T00:00:00')}
+
+function showToast(msg,dur=2500){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.display='block';
+  clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',dur);
+}
+function setConn(ok){
+  document.getElementById('conn-dot').className=ok?'dot-online':'dot-offline';
+  document.getElementById('conn-txt').textContent=ok?'Online':'Offline';
+}
+
+function initSelects(){
+  ['l-nama','pup-lahan','pan-lahan','pru-lahan','rac-lahan','rea-lahan','log-lahan'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML='<option value="">-- pilih --</option>';
+    LAHAN_NAMES.forEach(n=>el.innerHTML+=`<option value="${n}">${n}</option>`);
+  });
+  ['pup-bln1','pup-bln2','pru-bulan','pan-mulai','rac-mulai'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML='<option value="">--</option>';
+    MNF.forEach((m,i)=>el.innerHTML+=`<option value="${i+1}">${m}</option>`);
+  });
+  document.getElementById('rea-tanggal').value=todayStr();
+  document.getElementById('log-tanggal').value=todayStr();
+
+  const reaF=document.getElementById('rea-filter-btns');
+  const logF=document.getElementById('log-filter-btns');
+  LAHAN_NAMES.forEach(n=>{
+    reaF.innerHTML+=`<button class="btn-sm btn-gray" style="margin-right:6px;display:inline-block" onclick="filterRealisasi('${n}')">${n}</button>`;
+    logF.innerHTML+=`<button class="btn-sm btn-gray" style="margin-right:6px;display:inline-block" onclick="filterLog('${n}','')">${n}</button>`;
+  });
+}
+
+function switchTab(name,btn){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('p-'+name).classList.add('active');
+  const renders={dashboard:renderDashboard,lahan:renderLahan,pupuk:()=>{renderPupuk();renderPupukCal();},panen:renderPanen,realisasi:renderRealisasi,pruning:renderPruning,racun:renderRacun,log:renderLog,rekap:renderRekap};
+  if(renders[name])renders[name]();
+}
+
+async function loadAll(){
+  try{
+    const [lahan,pupuk,panen,pruning,racun,realisasi,log]=await Promise.all([
+      sb('lahan','GET',null,'order=nama'),
+      sb('pupuk','GET',null,'order=created_at'),
+      sb('panen','GET',null,'order=created_at'),
+      sb('pruning','GET',null,'order=created_at'),
+      sb('racun','GET',null,'order=created_at'),
+      sb('realisasi_panen','GET',null,'order=tanggal.desc'),
+      sb('log_aktivitas','GET',null,'order=tanggal.desc'),
+    ]);
+    cache={lahan,pupuk,panen,pruning,racun,realisasi,log};
+    setConn(true);renderDashboard();
+  }catch(e){setConn(false);console.error(e);}
+}
+
+function lahanMap(){const m={};cache.lahan.forEach(l=>m[l.nama]=l);return m;}
+
+/* ===== PENGINGAT JADWAL ===== */
+function getJadwalMingguIni(){
+  const now=new Date();
+  const today=now.getDay();
+  const monday=new Date(now);monday.setDate(now.getDate()-(today===0?6:today-1));
+  const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);
+  const bulanNow=now.getMonth()+1;
+  const alerts=[];
+
+  cache.pupuk.forEach(p=>{
+    if(p.bln1===bulanNow||p.bln2===bulanNow){
+      alerts.push({tipe:'Pupuk',lahan:p.lahan,detail:p.pupuk+' — '+p.dosis+' kg/pokok',urgensi:'kuning'});
+    }
+  });
+  cache.pruning.forEach(p=>{
+    if(p.bulan===bulanNow){
+      alerts.push({tipe:'Pruning',lahan:p.lahan,detail:p.jenis,urgensi:'blue'});
+    }
+  });
+  cache.racun.forEach(r=>{
+    const frek=r.frek||2;const interval=Math.floor(12/frek);
+    for(let i=0;i<frek;i++){
+      if(((( r.mulai||1)-1+i*interval)%12)+1===bulanNow){
+        alerts.push({tipe:'Herbisida',lahan:r.lahan,detail:r.jenis+' — '+r.area,urgensi:'amber'});break;
+      }
+    }
+  });
+
+  const panen7hari=cache.realisasi.filter(r=>{
+    const d=parseDate(r.tanggal);return d>=monday&&d<=sunday;
+  });
+  cache.panen.forEach(p=>{
+    const rotasi=p.rotasi||14;
+    const panenLahan=cache.realisasi.filter(r=>r.lahan===p.lahan);
+    if(panenLahan.length>0){
+      const last=panenLahan[0];
+      const lastDate=parseDate(last.tanggal);
+      const nextDate=new Date(lastDate);nextDate.setDate(lastDate.getDate()+rotasi);
+      if(nextDate>=monday&&nextDate<=sunday){
+        alerts.push({tipe:'Panen',lahan:p.lahan,detail:'Jadwal rotasi '+rotasi+' hari — '+nextDate.toLocaleDateString('id-ID'),urgensi:'merah'});
+      }
+    }
+  });
+  return alerts;
+}
+
+/* ===== DASHBOARD ===== */
+function renderDashboard(){
+  const now=new Date();
+  const bulanNow=now.getMonth()+1;
+  const tahunNow=now.getFullYear();
+  document.getElementById('d-bulan').textContent=MNF[bulanNow-1]+' '+tahunNow;
+  const totalHa=cache.lahan.reduce((a,l)=>a+(l.ha||0),0);
+  const totalPokok=cache.lahan.reduce((a,l)=>a+(l.pokok||0),0);
+  document.getElementById('d-lahan').textContent=cache.lahan.length+'/8';
+  document.getElementById('d-ha').textContent=totalHa.toFixed(1);
+  document.getElementById('d-pokok').textContent=fmt(totalPokok);
+
+  const reaaBulanIni=cache.realisasi.filter(r=>{
+    const d=parseDate(r.tanggal);
+    return d.getMonth()+1===bulanNow&&d.getFullYear()===tahunNow;
+  });
+  const totalKgBulan=reaaBulanIni.reduce((a,r)=>a+(r.kg_aktual||0),0);
+  const totalIncomeBulan=reaaBulanIni.reduce((a,r)=>a+(r.pendapatan||0),0);
+  document.getElementById('d-panen-bulan').textContent=fmt(totalKgBulan)+' kg';
+  document.getElementById('d-income-bulan').textContent=fmtK(totalIncomeBulan);
+
+  const jadwal=getJadwalMingguIni();
+  const alertBox=document.getElementById('alert-box');
+  if(jadwal.length){
+    alertBox.innerHTML=jadwal.map(a=>{
+      const cls=a.urgensi==='merah'?'alert-merah':a.urgensi==='kuning'?'alert-kuning':'alert-hijau';
+      return `<div class="alert-card ${cls}"><div class="alert-title">${a.tipe} — ${a.lahan}</div><div class="alert-sub">${a.detail}</div></div>`;
+    }).join('');
+  } else {
+    alertBox.innerHTML='';
+  }
+
+  const mingguHtml=jadwal.length?jadwal.map(a=>`<div class="info-row"><span>${a.lahan} — <b>${a.tipe}</b></span><span class="badge ${a.urgensi==='merah'?'b-red':a.urgensi==='kuning'?'b-amber':'b-green'}">${a.tipe}</span></div>`).join(''):'<div class="empty">Tidak ada jadwal minggu ini</div>';
+  document.getElementById('d-minggu').innerHTML=mingguHtml;
+
+  const aktPupuk=cache.pupuk.filter(p=>p.bln1===bulanNow||p.bln2===bulanNow);
+  const aktPruning=cache.pruning.filter(p=>p.bulan===bulanNow);
+  const aktRacun=cache.racun.filter(r=>{const frek=r.frek||2;const interval=Math.floor(12/frek);for(let i=0;i<frek;i++){if(((( r.mulai||1)-1+i*interval)%12)+1===bulanNow)return true;}return false;});
+  let html='';
+  aktPupuk.forEach(p=>html+=`<div class="info-row"><span>${p.lahan} — ${p.pupuk}</span><span class="badge b-green">Pupuk</span></div>`);
+  aktPruning.forEach(p=>html+=`<div class="info-row"><span>${p.lahan} — ${p.jenis}</span><span class="badge b-blue">Pruning</span></div>`);
+  aktRacun.forEach(r=>html+=`<div class="info-row"><span>${r.lahan} — ${r.jenis}</span><span class="badge b-amber">Herbisida</span></div>`);
+  document.getElementById('d-aktivitas').innerHTML=html||'<div class="empty">Tidak ada aktivitas bulan ini</div>';
+
+  const m=lahanMap();
+  document.getElementById('d-status').innerHTML=LAHAN_NAMES.map(n=>{
+    const d=m[n];
+    if(!d)return `<div class="info-row"><span style="color:#aaa">${n}</span><span class="badge b-gray">Belum diisi</span></div>`;
+    const kb=d.kondisi==='Baik'?'b-green':d.kondisi==='Sedang'?'b-amber':'b-red';
+    const panenTerakhir=cache.realisasi.filter(r=>r.lahan===n)[0];
+    const lastPanen=panenTerakhir?'Panen: '+panenTerakhir.tanggal:'Belum ada panen';
+    return `<div class="info-row"><span>${n} <small style="color:#888">${d.ha}ha / ${fmt(d.pokok||0)} pk &nbsp;|&nbsp; ${lastPanen}</small></span><span class="badge ${kb}">${d.kondisi}</span></div>`;
+  }).join('');
+}
+
+/* ===== LAHAN ===== */
+function isiFormLahan(nama){
+  const m=lahanMap();const d=m[nama];if(!d)return;
+  ['ha','pokok','tahun','jarak'].forEach(k=>document.getElementById('l-'+k).value=d[k]||'');
+  document.getElementById('l-kondisi').value=d.kondisi||'Baik';
+  document.getElementById('l-topo').value=d.topo||'Datar';
+  document.getElementById('l-ket').value=d.ket||'';
+}
+
+async function simpanLahan(){
+  const nama=document.getElementById('l-nama').value;
+  if(!nama){showToast('Pilih lahan dulu');return;}
+  const data={nama,ha:parseFloat(document.getElementById('l-ha').value)||0,pokok:parseInt(document.getElementById('l-pokok').value)||0,tahun:parseInt(document.getElementById('l-tahun').value)||2015,jarak:parseFloat(document.getElementById('l-jarak').value)||9,kondisi:document.getElementById('l-kondisi').value,topo:document.getElementById('l-topo').value,ket:document.getElementById('l-ket').value};
+  try{
+    const m=lahanMap();
+    if(m[nama])await sb('lahan','PATCH',data,'nama=eq.'+encodeURIComponent(nama));
+    else await sb('lahan','POST',data);
+    await loadAll();renderLahan();showToast('Data '+nama+' tersimpan');
+  }catch(e){showToast('Gagal: '+e.message);}
+}
+
+function renderLahan(){
+  if(!cache.lahan.length){document.getElementById('list-lahan').innerHTML='<div class="empty">Belum ada data lahan</div>';return;}
+  document.getElementById('list-lahan').innerHTML=cache.lahan.map(d=>{
+    const umur=new Date().getFullYear()-(d.tahun||2015);
+    const kb=d.kondisi==='Baik'?'b-green':d.kondisi==='Sedang'?'b-amber':'b-red';
+    return `<div class="item-card">
+      <div class="item-title">${d.nama} <span class="badge ${kb}">${d.kondisi||'-'}</span></div>
+      <div class="item-sub">${d.ha||0} ha &nbsp;|&nbsp; ${fmt(d.pokok||0)} pokok &nbsp;|&nbsp; Tanam ${d.tahun||'-'} (${umur} thn) &nbsp;|&nbsp; ${d.topo||'-'}</div>
+      ${d.ket?`<div class="item-sub">${d.ket}</div>`:''}
+      <div class="item-actions">
+        <button class="btn-sm btn-gray" onclick="document.getElementById('l-nama').value='${d.nama}';isiFormLahan('${d.nama}');window.scrollTo(0,0)">Edit</button>
+        <button class="btn-sm btn-red" onclick="hapusLahan('${d.id}','${d.nama}')">Hapus</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function hapusLahan(id,nama){
+  if(!confirm('Hapus data lahan '+nama+'?'))return;
+  try{await sb('lahan','DELETE',null,'id=eq.'+id);await loadAll();renderLahan();showToast(nama+' dihapus');}
+  catch(e){showToast('Gagal hapus');}
+}
+
+/* ===== PUPUK ===== */
+async function simpanPupuk(){
+  const lahan=document.getElementById('pup-lahan').value;
+  if(!lahan){showToast('Pilih lahan');return;}
+  const bln1=parseInt(document.getElementById('pup-bln1').value);
+  if(!bln1){showToast('Pilih bulan aplikasi');return;}
+  const dosis=parseFloat(document.getElementById('pup-dosis').value)||0;
+  const m=lahanMap();const d=m[lahan];
+  const data={lahan,pupuk:document.getElementById('pup-jenis').value,dosis,bln1,bln2:parseInt(document.getElementById('pup-bln2').value)||null,metode:document.getElementById('pup-metode').value,ket:document.getElementById('pup-ket').value,total_kg:d?Math.round((d.pokok||0)*dosis):0};
+  try{await sb('pupuk','POST',data);await loadAll();renderPupuk();renderPupukCal();showToast('Jadwal pupuk disimpan');}
+  catch(e){showToast('Gagal simpan');}
+}
+
+function renderPupuk(){
+  if(!cache.pupuk.length){document.getElementById('list-pupuk').innerHTML='<div class="empty">Belum ada jadwal</div>';return;}
+  document.getElementById('list-pupuk').innerHTML=cache.pupuk.map(p=>{
+    const blns=[MN[(p.bln1||1)-1],p.bln2?MN[p.bln2-1]:null].filter(Boolean).join(' & ');
+    return `<div class="item-card">
+      <div class="item-title">${p.lahan} — ${p.pupuk}</div>
+      <div class="item-sub">${p.dosis} kg/pokok &nbsp;|&nbsp; Total: ${fmt(p.total_kg||0)} kg &nbsp;|&nbsp; ${blns} &nbsp;|&nbsp; ${p.metode||''}</div>
+      ${p.ket?`<div class="item-sub">${p.ket}</div>`:''}
+      <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('pupuk','${p.id}')">Hapus</button></div>
+    </div>`;
+  }).join('');
+}
+
+function renderPupukCal(){
+  if(!cache.pupuk.length){document.getElementById('pup-cal').innerHTML='<div class="empty">Belum ada jadwal</div>';return;}
+  const byMonth={};
+  cache.pupuk.forEach(p=>[p.bln1,p.bln2].filter(Boolean).forEach(b=>{if(!byMonth[b])byMonth[b]=[];byMonth[b].push(COLORS[LAHAN_NAMES.indexOf(p.lahan)%COLORS.length]);}));
+  let html='<div class="cal-wrap">';
+  MN.forEach((m,i)=>{const bln=i+1;const dots=(byMonth[bln]||[]).map(c=>`<div class="dot" style="background:${c}"></div>`).join('');html+=`<div class="cal-cell"><div class="cal-mn">${m}</div><div class="dot-wrap">${dots}</div></div>`;});
+  html+='</div>';
+  const legend=LAHAN_NAMES.filter(n=>cache.pupuk.some(p=>p.lahan===n)).map(n=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#666;margin-right:8px"><span style="width:8px;height:8px;border-radius:50%;background:${COLORS[LAHAN_NAMES.indexOf(n)%COLORS.length]};flex-shrink:0"></span>${n}</span>`).join('');
+  document.getElementById('pup-cal').innerHTML=`<div style="margin-bottom:8px">${legend}</div>`+html;
+}
+
+/* ===== PANEN ===== */
+async function simpanPanen(){
+  const lahan=document.getElementById('pan-lahan').value;
+  if(!lahan){showToast('Pilih lahan');return;}
+  const m=lahanMap();const d=m[lahan];
+  const pokok=d?d.pokok:0;
+  const bjr=parseFloat(document.getElementById('pan-bjr').value)||15;
+  const akp=parseFloat(document.getElementById('pan-akp').value)||70;
+  const rotasi=parseInt(document.getElementById('pan-rotasi').value)||14;
+  const harga=parseInt(document.getElementById('pan-harga').value)||0;
+  const pokok_panen=Math.round(pokok*(akp/100));
+  const kg_per_rotasi=Math.round(pokok_panen*bjr);
+  const kg_per_bulan=Math.round(kg_per_rotasi*(30/rotasi));
+  const data={lahan,pokok,bjr,akp,rotasi,harga,pokok_panen,kg_per_rotasi,kg_per_bulan,income:kg_per_bulan*harga,mulai:parseInt(document.getElementById('pan-mulai').value)||1};
+  try{await sb('panen','POST',data);await loadAll();renderPanen();showToast('Jadwal panen disimpan');}
+  catch(e){showToast('Gagal simpan');}
+}
+
+function renderPanen(){
+  const totPokok=cache.panen.reduce((a,p)=>a+(p.pokok_panen||0),0);
+  const totKg=cache.panen.reduce((a,p)=>a+(p.kg_per_rotasi||0),0);
+  const totIncome=cache.panen.reduce((a,p)=>a+(p.income||0),0);
+  document.getElementById('pan-tot-pokok').textContent=cache.panen.length?fmt(totPokok):'-';
+  document.getElementById('pan-tot-kg').textContent=cache.panen.length?fmt(totKg)+' kg':'-';
+  document.getElementById('pan-tot-income').textContent=cache.panen.length?fmtK(totIncome):'-';
+  if(!cache.panen.length){document.getElementById('list-panen').innerHTML='<div class="empty">Belum ada jadwal</div>';return;}
+  document.getElementById('list-panen').innerHTML=cache.panen.map(p=>{
+    const panenList=cache.realisasi.filter(r=>r.lahan===p.lahan);
+    const lastPanen=panenList[0];
+    const nextInfo=lastPanen?`Panen terakhir: ${lastPanen.tanggal} | Next: ${nextPanenDate(lastPanen.tanggal,p.rotasi)}`:'Belum ada realisasi';
+    return `<div class="item-card">
+      <div class="item-title">${p.lahan}</div>
+      <div class="item-sub">Rotasi: ${p.rotasi} hr &nbsp;|&nbsp; BJR: ${p.bjr} kg &nbsp;|&nbsp; AKP: ${p.akp}% &nbsp;|&nbsp; Mulai: ${MNF[(p.mulai||1)-1]}</div>
+      <div class="item-sub">Est. ${fmt(p.kg_per_rotasi||0)} kg/rotasi &nbsp;|&nbsp; ${fmtRp(p.harga||0)}/kg</div>
+      <div class="item-sub" style="color:#1D9E75;font-weight:600">Est. ${fmtK(p.income||0)}/bln</div>
+      <div class="item-sub" style="color:#888;font-size:11px">${nextInfo}</div>
+      <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('panen','${p.id}')">Hapus</button></div>
+    </div>`;
+  }).join('');
+}
+
+function nextPanenDate(lastStr,rotasi){
+  const d=parseDate(lastStr);d.setDate(d.getDate()+(rotasi||14));
+  return d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+}
+
+/* ===== REALISASI PANEN ===== */
+async function simpanRealisasi(){
+  const lahan=document.getElementById('rea-lahan').value;
+  if(!lahan){showToast('Pilih lahan');return;}
+  const tanggal=document.getElementById('rea-tanggal').value;
+  if(!tanggal){showToast('Isi tanggal panen');return;}
+  const kg=parseFloat(document.getElementById('rea-kg').value)||0;
+  const harga=parseInt(document.getElementById('rea-harga').value)||0;
+  const data={lahan,tanggal,jumlah_jjg:parseInt(document.getElementById('rea-jjg').value)||0,kg_aktual:kg,harga_aktual:harga,pendapatan:Math.round(kg*harga),keterangan:document.getElementById('rea-ket').value};
+  try{
+    await sb('realisasi_panen','POST',data);
+    await sb('log_aktivitas','POST',{lahan,jenis:'Panen',tanggal,keterangan:`${kg} kg — ${fmt(Math.round(kg*harga))} Rp`,pelaksana:'',biaya:0});
+    await loadAll();renderRealisasi();showToast('Hasil panen dicatat');
+    document.getElementById('rea-kg').value='';
+    document.getElementById('rea-jjg').value='';
+    document.getElementById('rea-harga').value='';
+    document.getElementById('rea-ket').value='';
+    document.getElementById('rea-tanggal').value=todayStr();
+  }catch(e){showToast('Gagal: '+e.message);}
+}
+
+function filterRealisasi(lahan){filterReaLahan=lahan;renderRealisasi();}
+
+function renderRealisasi(){
+  const data=filterReaLahan?cache.realisasi.filter(r=>r.lahan===filterReaLahan):cache.realisasi;
+  const totalKg=data.reduce((a,r)=>a+(r.kg_aktual||0),0);
+  const totalIncome=data.reduce((a,r)=>a+(r.pendapatan||0),0);
+  const sum=document.getElementById('rea-summary');
+  if(data.length){
+    sum.style.display='block';
+    document.getElementById('rs-kg').textContent=fmt(totalKg)+' kg';
+    document.getElementById('rs-income').textContent=fmtK(totalIncome);
+    document.getElementById('rs-rot').textContent=data.length+'x';
+  } else {sum.style.display='none';}
+  if(!data.length){document.getElementById('list-realisasi').innerHTML='<div class="empty">Belum ada data panen</div>';return;}
+  document.getElementById('list-realisasi').innerHTML=data.map(r=>`<div class="item-card">
+    <div class="item-title">${r.lahan} <span style="font-weight:400;color:#888;font-size:13px">${r.tanggal}</span></div>
+    <div class="item-sub">${fmt(r.jumlah_jjg||0)} jjg &nbsp;|&nbsp; <b>${fmt(r.kg_aktual||0)} kg</b> &nbsp;|&nbsp; ${fmtRp(r.harga_aktual||0)}/kg</div>
+    <div class="item-sub" style="color:#E67E22;font-weight:700">Pendapatan: ${fmtK(r.pendapatan||0)}</div>
+    ${r.keterangan?`<div class="item-sub">${r.keterangan}</div>`:''}
+    <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('realisasi_panen','${r.id}')">Hapus</button></div>
+  </div>`).join('');
+}
+
+/* ===== PRUNING ===== */
+async function simpanPruning(){
+  const lahan=document.getElementById('pru-lahan').value;
+  if(!lahan){showToast('Pilih lahan');return;}
+  const m=lahanMap();const d=m[lahan];
+  const pokok=d?d.pokok:0;
+  const upah=parseInt(document.getElementById('pru-upah').value)||0;
+  const data={lahan,pokok,jenis:document.getElementById('pru-jenis').value,frek:document.getElementById('pru-frek').value,bulan:parseInt(document.getElementById('pru-bulan').value)||1,upah,biaya:pokok*upah,ket:document.getElementById('pru-ket').value};
+  try{await sb('pruning','POST',data);await loadAll();renderPruning();showToast('Jadwal pruning disimpan');}
+  catch(e){showToast('Gagal simpan');}
+}
+
+function renderPruning(){
+  if(!cache.pruning.length){document.getElementById('list-pruning').innerHTML='<div class="empty">Belum ada jadwal</div>';return;}
+  document.getElementById('list-pruning').innerHTML=cache.pruning.map(p=>`<div class="item-card">
+    <div class="item-title">${p.lahan} — ${p.jenis}</div>
+    <div class="item-sub">${p.frek} &nbsp;|&nbsp; Bulan: ${MNF[(p.bulan||1)-1]} &nbsp;|&nbsp; Upah: ${fmtRp(p.upah||0)}/pokok</div>
+    <div class="item-sub">Est. biaya: <b>${fmtRp(p.biaya||0)}</b></div>
+    ${p.ket?`<div class="item-sub">${p.ket}</div>`:''}
+    <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('pruning','${p.id}')">Hapus</button></div>
+  </div>`).join('');
+}
+
+/* ===== RACUN ===== */
+async function simpanRacun(){
+  const lahan=document.getElementById('rac-lahan').value;
+  if(!lahan){showToast('Pilih lahan');return;}
+  const m=lahanMap();const d=m[lahan];const ha=d?d.ha:0;
+  const frek=parseInt(document.getElementById('rac-frek').value)||2;
+  const mulai=parseInt(document.getElementById('rac-mulai').value)||1;
+  const upah=parseInt(document.getElementById('rac-upah').value)||0;
+  const interval=Math.floor(12/frek);
+  const bulanArr=[];for(let i=0;i<frek;i++)bulanArr.push(MN[((mulai-1+i*interval)%12)]);
+  const data={lahan,ha,jenis:document.getElementById('rac-jenis').value,area:document.getElementById('rac-area').value,dosis:parseFloat(document.getElementById('rac-dosis').value)||0,frek,upah,biaya_tahunan:Math.round(ha*upah*frek),mulai,bulan_aplikasi:bulanArr.join(','),ket:document.getElementById('rac-ket').value};
+  try{await sb('racun','POST',data);await loadAll();renderRacun();showToast('Jadwal herbisida disimpan');}
+  catch(e){showToast('Gagal simpan');}
+}
+
+function renderRacun(){
+  if(!cache.racun.length){document.getElementById('list-racun').innerHTML='<div class="empty">Belum ada jadwal</div>';return;}
+  document.getElementById('list-racun').innerHTML=cache.racun.map(r=>`<div class="item-card">
+    <div class="item-title">${r.lahan} — ${r.jenis}</div>
+    <div class="item-sub">Area: ${r.area} &nbsp;|&nbsp; Dosis: ${r.dosis} L/ha &nbsp;|&nbsp; ${r.frek}x/thn</div>
+    <div class="item-sub">Aplikasi: ${r.bulan_aplikasi||'-'} &nbsp;|&nbsp; Est. biaya/thn: <b>${fmtRp(r.biaya_tahunan||0)}</b></div>
+    ${r.ket?`<div class="item-sub">${r.ket}</div>`:''}
+    <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('racun','${r.id}')">Hapus</button></div>
+  </div>`).join('');
+}
+
+/* ===== LOG AKTIVITAS ===== */
+async function simpanLog(){
+  const lahan=document.getElementById('log-lahan').value;
+  if(!lahan){showToast('Pilih lahan');return;}
+  const tanggal=document.getElementById('log-tanggal').value;
+  if(!tanggal){showToast('Isi tanggal');return;}
+  const data={lahan,jenis:document.getElementById('log-jenis').value,tanggal,keterangan:document.getElementById('log-ket').value,pelaksana:document.getElementById('log-pelaksana').value,biaya:parseInt(document.getElementById('log-biaya').value)||0};
+  try{
+    await sb('log_aktivitas','POST',data);
+    await loadAll();renderLog();showToast('Aktivitas dicatat');
+    ['log-ket','log-pelaksana','log-biaya'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('log-tanggal').value=todayStr();
+  }catch(e){showToast('Gagal: '+e.message);}
+}
+
+function filterLog(lahan){filterLogLahan=lahan;renderLog();}
+
+function renderLog(){
+  const data=filterLogLahan?cache.log.filter(l=>l.lahan===filterLogLahan):cache.log;
+  if(!data.length){document.getElementById('list-log').innerHTML='<div class="empty">Belum ada aktivitas tercatat</div>';return;}
+  document.getElementById('list-log').innerHTML=`<div class="card" style="padding:8px 14px">`+data.map(l=>{
+    const warna=LOG_COLORS[l.jenis]||'#888';
+    return `<div class="log-item">
+      <div class="log-dot" style="background:${warna}"></div>
+      <div class="log-body">
+        <div class="log-title">${l.lahan} — ${l.jenis}</div>
+        <div class="log-meta">${l.tanggal}${l.pelaksana?' &nbsp;|&nbsp; '+l.pelaksana:''}${l.biaya?' &nbsp;|&nbsp; '+fmtRp(l.biaya):''}</div>
+        ${l.keterangan?`<div style="font-size:12px;color:#555;margin-top:2px">${l.keterangan}</div>`:''}
+      </div>
+      <button class="btn-sm btn-red" style="flex-shrink:0;padding:5px 10px;font-size:11px" onclick="hapusItem('log_aktivitas','${l.id}')">×</button>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+/* ===== HAPUS ITEM ===== */
+async function hapusItem(table,id){
+  if(!confirm('Hapus data ini?'))return;
+  try{
+    await sb(table,'DELETE',null,'id=eq.'+id);
+    await loadAll();
+    const renders={pupuk:()=>{renderPupuk();renderPupukCal();},panen:renderPanen,pruning:renderPruning,racun:renderRacun,realisasi_panen:renderRealisasi,log_aktivitas:renderLog};
+    if(renders[table])renders[table]();
+    showToast('Data dihapus');
+  }catch(e){showToast('Gagal hapus');}
+}
+
+/* ===== REKAP ===== */
+function renderRekap(){
+  const totalKgAll=cache.realisasi.reduce((a,r)=>a+(r.kg_aktual||0),0);
+  const totalIncomeAll=cache.realisasi.reduce((a,r)=>a+(r.pendapatan||0),0);
+  document.getElementById('rek-kg-total').textContent=fmt(totalKgAll)+' kg';
+  document.getElementById('rek-income-total').textContent=fmtK(totalIncomeAll);
+  if(!cache.lahan.length){document.getElementById('rekap-isi').innerHTML='<div class="empty">Isi data lahan terlebih dahulu</div>';return;}
+  let totBiaya=0,totIncome=0;
+  const cards=cache.lahan.map(d=>{
+    const biayaPruning=cache.pruning.filter(p=>p.lahan===d.nama).reduce((a,p)=>a+(p.biaya||0),0);
+    const biayaRacun=cache.racun.filter(r=>r.lahan===d.nama).reduce((a,r)=>a+(r.biaya_tahunan||0),0);
+    const totalBiaya=biayaPruning+biayaRacun;
+    const incomeEst=cache.panen.filter(p=>p.lahan===d.nama).reduce((a,p)=>a+(p.income||0),0);
+    const incomeAktual=cache.realisasi.filter(r=>r.lahan===d.nama).reduce((a,r)=>a+(r.pendapatan||0),0);
+    const rotasiCount=cache.realisasi.filter(r=>r.lahan===d.nama).length;
+    totBiaya+=totalBiaya;totIncome+=incomeAktual;
+    return `<div class="rekap-card">
+      <div class="rekap-head">${d.nama} <span style="font-weight:400;color:#666">${d.ha}ha / ${fmt(d.pokok||0)} pokok</span></div>
+      <div class="rekap-body">
+        <div class="info-row"><span style="color:#666">Realisasi panen</span><span>${rotasiCount}x rotasi</span></div>
+        <div class="info-row"><span style="color:#666">Pendapatan aktual</span><span style="color:#E67E22;font-weight:600">${fmtK(incomeAktual)}</span></div>
+        <div class="info-row"><span style="color:#666">Est. pendapatan/bln</span><span style="color:#1D9E75">${fmtK(incomeEst)}</span></div>
+        <div class="info-row"><span style="color:#666">Biaya pruning/thn</span><span>${fmtRp(biayaPruning)}</span></div>
+        <div class="info-row"><span style="color:#666">Biaya herbisida/thn</span><span>${fmtRp(biayaRacun)}</span></div>
+        <div class="info-row"><span style="font-weight:600">Total biaya/thn</span><span style="font-weight:600">${fmtRp(totalBiaya)}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('rekap-isi').innerHTML=cards+`<div class="item-card" style="background:#f5f5f0">
+    <div class="info-row"><span style="font-weight:600">Total biaya/thn</span><span style="font-weight:600">${fmtRp(totBiaya)}</span></div>
+    <div class="info-row"><span style="font-weight:600;color:#E67E22">Total pendapatan aktual</span><span style="font-weight:600;color:#E67E22">${fmtK(totIncome)}</span></div>
+  </div>`;
+}
+
+/* ===== EXPORT CSV ===== */
+function exportCSV(){
+  let csv='REKAP KEBUN SAWIT\n\n';
+  csv+='=== DATA LAHAN ===\nNama,Ha,Pokok,Tahun Tanam,Kondisi,Topografi,Keterangan\n';
+  cache.lahan.forEach(d=>csv+=`${d.nama},${d.ha},${d.pokok},${d.tahun},${d.kondisi},${d.topo},"${d.ket||''}"\n`);
+  csv+='\n=== JADWAL PEMUPUKAN ===\nLahan,Pupuk,Dosis/Pokok (kg),Total (kg),Bulan 1,Bulan 2,Metode,Catatan\n';
+  cache.pupuk.forEach(p=>csv+=`${p.lahan},${p.pupuk},${p.dosis},${p.total_kg},${MNF[(p.bln1||1)-1]},${p.bln2?MNF[p.bln2-1]:''},${p.metode},"${p.ket||''}"\n`);
+  csv+='\n=== JADWAL PANEN ===\nLahan,Pokok,Rotasi (hr),BJR (kg),AKP (%),Est kg/rotasi,Harga Rp/kg,Est Rp/bln\n';
+  cache.panen.forEach(p=>csv+=`${p.lahan},${p.pokok},${p.rotasi},${p.bjr},${p.akp},${p.kg_per_rotasi},${p.harga},${p.income}\n`);
+  csv+='\n=== REALISASI PANEN ===\nLahan,Tanggal,Janjang (jjg),Berat (kg),Harga Rp/kg,Pendapatan\n';
+  cache.realisasi.forEach(r=>csv+=`${r.lahan},${r.tanggal},${r.jumlah_jjg},${r.kg_aktual},${r.harga_aktual},${r.pendapatan}\n`);
+  csv+='\n=== LOG AKTIVITAS ===\nLahan,Jenis,Tanggal,Pelaksana,Biaya,Keterangan\n';
+  cache.log.forEach(l=>csv+=`${l.lahan},${l.jenis},${l.tanggal},${l.pelaksana||''},${l.biaya||0},"${l.keterangan||''}"\n`);
+  csv+='\n=== JADWAL PRUNING ===\nLahan,Pokok,Jenis,Frekuensi,Bulan,Upah/Pokok,Est Biaya\n';
+  cache.pruning.forEach(p=>csv+=`${p.lahan},${p.pokok},"${p.jenis}",${p.frek},${MNF[(p.bulan||1)-1]},${p.upah},${p.biaya}\n`);
+  csv+='\n=== JADWAL HERBISIDA ===\nLahan,Ha,Herbisida,Area,Dosis L/ha,Frekuensi,Bulan Aplikasi,Upah/ha,Est Biaya/thn\n';
+  cache.racun.forEach(r=>csv+=`${r.lahan},${r.ha},${r.jenis},${r.area},${r.dosis},${r.frek}x,"${r.bulan_aplikasi||''}",${r.upah},${r.biaya_tahunan}\n`);
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='kebun_sawit_'+todayStr()+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('File CSV berhasil didownload');
+}
+
+initSelects();
+loadAll();
+</script>
+</body>
+</html>
