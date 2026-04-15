@@ -139,7 +139,8 @@ select:focus,input:focus{border-color:#1D9E75}
 <div id="p-lahan" class="panel">
   <div class="card">
     <div class="card-title">Tambah / edit data lahan</div>
-    <div class="form-group"><label>Pilih lahan</label><select id="l-nama" onchange="isiFormLahan(this.value)"><option value="">-- pilih --</option></select></div>
+    <div class="form-group"><label>Pilih lahan yang sudah ada</label><select id="l-nama" onchange="isiFormLahan(this.value)"><option value="">-- pilih --</option></select></div>
+    <div class="form-group"><label>Atau ketik nama lahan baru</label><input type="text" id="l-nama-baru" placeholder="cth: Kebun Baru, Blok C, Sungai Roli..." oninput="if(this.value)document.getElementById('l-nama').value=''"></div>
     <div class="grid2">
       <div class="form-group"><label>Luas (ha)</label><input type="number" id="l-ha" placeholder="5.5" step="0.1" min="0"></div>
       <div class="form-group"><label>Jumlah pokok</label><input type="number" id="l-pokok" placeholder="150" min="0"></div>
@@ -339,7 +340,7 @@ const SUPABASE_URL='https://suguhkuaoxszaewbicya.supabase.co';
 const SUPABASE_KEY='sb_publishable_9KvrV7Y8XXF_KBPBaqME3Q_CJSfnhMU';
 const H={'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
 
-const LAHAN_NAMES=['Yurni','Dekol','Torus Ujang','Padang','Telago','SD TLD','Roli','Quari ulu'];
+let LAHAN_NAMES=['Yurni','Dekol','Torus','Ujang','Padang','Telago','SD TLD','Roli','Quari ulu'];
 const MN=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const MNF=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const COLORS=['#1D9E75','#185FA5','#BA7517','#D85A30','#D4537E','#534AB7','#639922','#888780'];
@@ -374,11 +375,6 @@ function setConn(ok){
 }
 
 function initSelects(){
-  ['l-nama','pup-lahan','pan-lahan','pru-lahan','rac-lahan','rea-lahan','log-lahan'].forEach(id=>{
-    const el=document.getElementById(id);if(!el)return;
-    el.innerHTML='<option value="">-- pilih --</option>';
-    LAHAN_NAMES.forEach(n=>el.innerHTML+=`<option value="${n}">${n}</option>`);
-  });
   ['pup-bln1','pup-bln2','pru-bulan','pan-mulai','rac-mulai'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     el.innerHTML='<option value="">--</option>';
@@ -386,13 +382,6 @@ function initSelects(){
   });
   document.getElementById('rea-tanggal').value=todayStr();
   document.getElementById('log-tanggal').value=todayStr();
-
-  const reaF=document.getElementById('rea-filter-btns');
-  const logF=document.getElementById('log-filter-btns');
-  LAHAN_NAMES.forEach(n=>{
-    reaF.innerHTML+=`<button class="btn-sm btn-gray" style="margin-right:6px;display:inline-block" onclick="filterRealisasi('${n}')">${n}</button>`;
-    logF.innerHTML+=`<button class="btn-sm btn-gray" style="margin-right:6px;display:inline-block" onclick="filterLog('${n}','')">${n}</button>`;
-  });
 }
 
 function switchTab(name,btn){
@@ -416,8 +405,24 @@ async function loadAll(){
       sb('log_aktivitas','GET',null,'order=tanggal.desc'),
     ]);
     cache={lahan,pupuk,panen,pruning,racun,realisasi,log};
-    setConn(true);renderDashboard();
+    setConn(true);refreshLahanSelects();renderDashboard();
   }catch(e){setConn(false);console.error(e);}
+}
+
+function refreshLahanSelects(){
+  LAHAN_NAMES=cache.lahan.map(l=>l.nama);
+  const selIds=['l-nama','pup-lahan','pan-lahan','pru-lahan','rac-lahan','rea-lahan','log-lahan'];
+  selIds.forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const cur=el.value;
+    el.innerHTML='<option value="">-- pilih --</option>';
+    LAHAN_NAMES.forEach(n=>el.innerHTML+=`<option value="${n}">${n}</option>`);
+    if(cur)el.value=cur;
+  });
+  const reaF=document.getElementById('rea-filter-btns');
+  const logF=document.getElementById('log-filter-btns');
+  if(reaF)reaF.innerHTML=LAHAN_NAMES.map(n=>`<button class="btn-sm btn-gray" style="margin-right:6px;display:inline-block" onclick="filterRealisasi('${n}')">${n}</button>`).join('');
+  if(logF)logF.innerHTML=LAHAN_NAMES.map(n=>`<button class="btn-sm btn-gray" style="margin-right:6px;display:inline-block" onclick="filterLog('${n}')">${n}</button>`).join('');
 }
 
 function lahanMap(){const m={};cache.lahan.forEach(l=>m[l.nama]=l);return m;}
@@ -476,7 +481,7 @@ function renderDashboard(){
   document.getElementById('d-bulan').textContent=MNF[bulanNow-1]+' '+tahunNow;
   const totalHa=cache.lahan.reduce((a,l)=>a+(l.ha||0),0);
   const totalPokok=cache.lahan.reduce((a,l)=>a+(l.pokok||0),0);
-  document.getElementById('d-lahan').textContent=cache.lahan.length+'/8';
+  document.getElementById('d-lahan').textContent=cache.lahan.length+' lahan';
   document.getElementById('d-ha').textContent=totalHa.toFixed(1);
   document.getElementById('d-pokok').textContent=fmt(totalPokok);
 
@@ -533,14 +538,21 @@ function isiFormLahan(nama){
 }
 
 async function simpanLahan(){
-  const nama=document.getElementById('l-nama').value;
-  if(!nama){showToast('Pilih lahan dulu');return;}
+  const namaBaru=document.getElementById('l-nama-baru').value.trim();
+  const namaSelect=document.getElementById('l-nama').value;
+  const nama=namaBaru||namaSelect;
+  if(!nama){showToast('Pilih lahan atau ketik nama lahan baru');return;}
   const data={nama,ha:parseFloat(document.getElementById('l-ha').value)||0,pokok:parseInt(document.getElementById('l-pokok').value)||0,tahun:parseInt(document.getElementById('l-tahun').value)||2015,jarak:parseFloat(document.getElementById('l-jarak').value)||9,kondisi:document.getElementById('l-kondisi').value,topo:document.getElementById('l-topo').value,ket:document.getElementById('l-ket').value};
   try{
     const m=lahanMap();
     if(m[nama])await sb('lahan','PATCH',data,'nama=eq.'+encodeURIComponent(nama));
     else await sb('lahan','POST',data);
-    await loadAll();renderLahan();showToast('Data '+nama+' tersimpan');
+    await loadAll();
+    refreshLahanSelects();
+    renderLahan();
+    document.getElementById('l-nama-baru').value='';
+    document.getElementById('l-nama').value='';
+    showToast('Data '+nama+' tersimpan');
   }catch(e){showToast('Gagal: '+e.message);}
 }
 
