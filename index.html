@@ -163,14 +163,11 @@ select:focus,input:focus{border-color:#1D9E75}
 <div class="nav">
   <button class="nav-btn active" onclick="switchTab('dashboard',this)">Dashboard</button>
   <button class="nav-btn" onclick="switchTab('jadwal',this)">Jadwal</button>
-  <button class="nav-btn" onclick="switchTab('lahan',this)">Lahan</button>
-  <button class="nav-btn" onclick="switchTab('pupuk',this)">Pupuk</button>
   <button class="nav-btn" onclick="switchTab('realisasi',this)">Realisasi</button>
-  <button class="nav-btn" onclick="switchTab('pruning',this)">Pruning</button>
-  <button class="nav-btn" onclick="switchTab('racun',this)">Herbisida</button>
-  <button class="nav-btn" onclick="switchTab('log',this)">Histori</button>
+  <button class="nav-btn" onclick="switchTab('histori',this)">Histori</button>
   <button class="nav-btn" onclick="switchTab('modal',this)">Modal</button>
   <button class="nav-btn" onclick="switchTab('rekap',this)">Rekap</button>
+  <button class="nav-btn" onclick="switchTab('lahan',this)">Lahan</button>
 </div>
 
 <div class="content">
@@ -291,31 +288,6 @@ select:focus,input:focus{border-color:#1D9E75}
   <div id="list-lahan"><div class="loading">Memuat...</div></div>
 </div>
 
-<!-- PUPUK -->
-<div id="p-pupuk" class="panel">
-  <div class="card">
-    <div class="card-title">Tambah jadwal pemupukan</div>
-    <div class="form-group"><label>Lahan</label><select id="pup-lahan"><option value="">-- pilih --</option></select></div>
-    <div class="form-group"><label>Jenis pupuk</label>
-      <select id="pup-jenis"><option>Urea (N)</option><option>MOP/KCl (K)</option><option>TSP/SP-36 (P)</option><option>Dolomit (Mg)</option><option>Borate (B)</option><option>PKSC/Janjang kosong</option><option>NPK Majemuk</option><option>Kiserit</option></select>
-    </div>
-    <div class="grid2">
-      <div class="form-group"><label>Dosis/pokok (kg)</label><input type="number" id="pup-dosis" placeholder="2" step="0.25" min="0"></div>
-      <div class="form-group"><label>Metode</label><select id="pup-metode"><option>Tebar melingkar</option><option>Piringan</option><option>Larikan</option><option>Semprot daun</option></select></div>
-    </div>
-    <div class="grid2">
-      <div class="form-group"><label>Bulan aplikasi 1</label><select id="pup-bln1"><option value="">--</option></select></div>
-      <div class="form-group"><label>Bulan aplikasi 2</label><select id="pup-bln2"><option value="">--</option></select></div>
-    </div>
-    <div class="form-group"><label>Catatan</label><input type="text" id="pup-ket" placeholder="cth: saat awal hujan"></div>
-    <button class="btn btn-green" onclick="simpanPupuk()">Tambah jadwal</button>
-  </div>
-  <div class="section-lbl">Kalender pemupukan</div>
-  <div class="card"><div id="pup-cal"><div class="loading">Memuat...</div></div></div>
-  <div class="section-lbl">Daftar jadwal</div>
-  <div id="list-pupuk"><div class="loading">Memuat...</div></div>
-</div>
-
 <!-- REALISASI PANEN -->
 <div id="p-realisasi" class="panel">
   <div class="card">
@@ -359,52 +331,8 @@ select:focus,input:focus{border-color:#1D9E75}
   <div id="list-realisasi"><div class="loading">Memuat...</div></div>
 </div>
 
-<!-- PRUNING -->
-<div id="p-pruning" class="panel">
-  <div class="card">
-    <div class="card-title">Tambah jadwal pruning</div>
-    <div class="form-group"><label>Lahan</label><select id="pru-lahan"><option value="">-- pilih --</option></select></div>
-    <div class="form-group"><label>Jenis pruning</label>
-      <select id="pru-jenis"><option>Sanitasi (pelepah kering)</option><option>Songgo 2</option><option>Songgo 1</option><option>Kastrasi (pohon muda)</option></select>
-    </div>
-    <div class="grid2">
-      <div class="form-group"><label>Frekuensi</label><select id="pru-frek"><option>1x setahun</option><option>2x setahun</option><option>Per rotasi panen</option><option>Insidental</option></select></div>
-      <div class="form-group"><label>Bulan pelaksanaan</label><select id="pru-bulan"><option value="">--</option></select></div>
-    </div>
-    <div class="form-group"><label>Upah/pokok (Rp)</label><input type="number" id="pru-upah" placeholder="1500" min="0"></div>
-    <div class="form-group"><label>Catatan</label><input type="text" id="pru-ket" placeholder="catatan pruning"></div>
-    <button class="btn btn-green" onclick="simpanPruning()">Tambah jadwal</button>
-  </div>
-  <div class="section-lbl">Daftar jadwal pruning</div>
-  <div id="list-pruning"><div class="loading">Memuat...</div></div>
-</div>
-
-<!-- HERBISIDA -->
-<div id="p-racun" class="panel">
-  <div class="card">
-    <div class="card-title">Tambah jadwal herbisida</div>
-    <div class="form-group"><label>Lahan</label><select id="rac-lahan"><option value="">-- pilih --</option></select></div>
-    <div class="form-group"><label>Jenis herbisida</label>
-      <select id="rac-jenis"><option>Glifosat (Round-up)</option><option>Parakuat (Gramoxone)</option><option>Metil Metsulfuron</option><option>Fluroksipir</option><option>2,4-D Amin</option><option>Triklopir</option><option>Campuran (rotasi)</option></select>
-    </div>
-    <div class="grid2">
-      <div class="form-group"><label>Area aplikasi</label><select id="rac-area"><option>Piringan</option><option>Gawangan mati</option><option>Gawangan hidup</option><option>Seluruh areal</option><option>Parit/TPH</option></select></div>
-      <div class="form-group"><label>Dosis (L/ha)</label><input type="number" id="rac-dosis" placeholder="3" step="0.5" min="0"></div>
-    </div>
-    <div class="grid2">
-      <div class="form-group"><label>Frekuensi/tahun</label><select id="rac-frek"><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="6">6x</option></select></div>
-      <div class="form-group"><label>Bulan mulai</label><select id="rac-mulai"><option value="">--</option></select></div>
-    </div>
-    <div class="form-group"><label>Upah aplikasi (Rp/ha)</label><input type="number" id="rac-upah" placeholder="150000" min="0"></div>
-    <div class="form-group"><label>Catatan</label><input type="text" id="rac-ket" placeholder="cth: pakai knapsack"></div>
-    <button class="btn btn-green" onclick="simpanRacun()">Tambah jadwal</button>
-  </div>
-  <div class="section-lbl">Daftar jadwal herbisida</div>
-  <div id="list-racun"><div class="loading">Memuat...</div></div>
-</div>
-
 <!-- HISTORI LOG -->
-<div id="p-log" class="panel">
+<div id="p-histori" class="panel">
   <div class="card">
     <div class="card-title">Catat aktivitas lapangan</div>
     <div class="form-group"><label>Lahan</label><select id="log-lahan"><option value="">-- pilih --</option></select></div>
@@ -585,7 +513,7 @@ const MNF=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','S
 const COLORS=['#1D9E75','#185FA5','#BA7517','#D85A30','#D4537E','#534AB7','#639922','#888780'];
 const LOG_COLORS={'Pemupukan':'#1D9E75','Panen':'#E67E22','Pruning':'#185FA5','Semprot herbisida':'#BA7517','Pengendalian hama':'#D85A30','Perbaikan jalan':'#888780','Sensus pokok':'#534AB7','Lainnya':'#888'};
 
-let cache={lahan:[],pupuk:[],pruning:[],racun:[],realisasi:[],log:[],modal:[],jadwal:[]};
+let cache={lahan:[],realisasi:[],log:[],modal:[],jadwal:[]};
 let filterReaLahan='', filterLogLahan='', filterModalLahan='', filterModalKat='';
 
 async function sb(table,method='GET',body=null,params=''){
@@ -614,11 +542,6 @@ function setConn(ok){
 }
 
 function initSelects(){
-  ['pup-bln1','pup-bln2','pru-bulan','rac-mulai'].forEach(id=>{
-    const el=document.getElementById(id);if(!el)return;
-    el.innerHTML='<option value="">--</option>';
-    MNF.forEach((m,i)=>el.innerHTML+=`<option value="${i+1}">${m}</option>`);
-  });
   document.getElementById('rea-tanggal').value=todayStr();
   document.getElementById('log-tanggal').value=todayStr();
   document.getElementById('mod-tanggal').value=todayStr();
@@ -632,30 +555,27 @@ function switchTab(name,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('p-'+name).classList.add('active');
-  const renders={dashboard:renderDashboard,jadwal:renderJadwal,lahan:renderLahan,pupuk:()=>{renderPupuk();renderPupukCal();},realisasi:renderRealisasi,pruning:renderPruning,racun:renderRacun,log:renderLog,modal:renderModal,rekap:renderRekap};
+  const renders={dashboard:renderDashboard,jadwal:renderJadwal,realisasi:renderRealisasi,histori:renderLog,modal:renderModal,rekap:renderRekap,lahan:renderLahan};
   if(renders[name])renders[name]();
 }
 
 async function loadAll(){
   try{
-    const [lahan,pupuk,pruning,racun,realisasi,log,modal,jadwal]=await Promise.all([
+    const [lahan,realisasi,log,modal,jadwal]=await Promise.all([
       sb('lahan','GET',null,'order=nama'),
-      sb('pupuk','GET',null,'order=created_at'),
-      sb('pruning','GET',null,'order=created_at'),
-      sb('racun','GET',null,'order=created_at'),
       sb('realisasi_panen','GET',null,'order=tanggal.desc'),
       sb('log_aktivitas','GET',null,'order=tanggal.desc'),
       sb('modal','GET',null,'order=tanggal.desc'),
       sb('jadwal_aktif','GET',null,'order=tanggal_due'),
     ]);
-    cache={lahan,pupuk,pruning,racun,realisasi,log,modal,jadwal};
+    cache={lahan,realisasi,log,modal,jadwal};
     setConn(true);refreshLahanSelects();renderDashboard();
   }catch(e){setConn(false);console.error(e);}
 }
 
 function refreshLahanSelects(){
   LAHAN_NAMES=cache.lahan.map(l=>l.nama);
-  const selIds=['l-nama','pup-lahan','pru-lahan','rac-lahan','rea-lahan','log-lahan','mod-lahan','jdw-lahan'];
+  const selIds=['l-nama','rea-lahan','log-lahan','mod-lahan','jdw-lahan'];
   selIds.forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const cur=el.value;
@@ -672,38 +592,6 @@ function refreshLahanSelects(){
 function lahanMap(){const m={};cache.lahan.forEach(l=>m[l.nama]=l);return m;}
 
 /* ===== PENGINGAT JADWAL ===== */
-function getJadwalMingguIni(){
-  const now=new Date();
-  const today=now.getDay();
-  const monday=new Date(now);monday.setDate(now.getDate()-(today===0?6:today-1));
-  const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);
-  const bulanNow=now.getMonth()+1;
-  const alerts=[];
-
-  cache.pupuk.forEach(p=>{
-    if(p.bln1===bulanNow||p.bln2===bulanNow){
-      alerts.push({tipe:'Pupuk',lahan:p.lahan,detail:p.pupuk+' — '+p.dosis+' kg/pokok',urgensi:'kuning'});
-    }
-  });
-  cache.pruning.forEach(p=>{
-    if(p.bulan===bulanNow){
-      alerts.push({tipe:'Pruning',lahan:p.lahan,detail:p.jenis,urgensi:'blue'});
-    }
-  });
-  cache.racun.forEach(r=>{
-    const frek=r.frek||2;const interval=Math.floor(12/frek);
-    for(let i=0;i<frek;i++){
-      if(((( r.mulai||1)-1+i*interval)%12)+1===bulanNow){
-        alerts.push({tipe:'Herbisida',lahan:r.lahan,detail:r.jenis+' — '+r.area,urgensi:'amber'});break;
-      }
-    }
-  });
-
-
-
-  return alerts;
-}
-
 /* ===== DASHBOARD ===== */
 function renderDashboard(){
   const now=new Date();
@@ -752,14 +640,14 @@ function renderDashboard(){
   }).join(''):'<div class="empty">Tidak ada jadwal minggu ini</div>';
   document.getElementById('d-minggu').innerHTML=mingguHtml;
 
-  const aktPupuk=cache.pupuk.filter(p=>p.bln1===bulanNow||p.bln2===bulanNow);
-  const aktPruning=cache.pruning.filter(p=>p.bulan===bulanNow);
-  const aktRacun=cache.racun.filter(r=>{const frek=r.frek||2;const interval=Math.floor(12/frek);for(let i=0;i<frek;i++){if(((( r.mulai||1)-1+i*interval)%12)+1===bulanNow)return true;}return false;});
-  let html='';
-  aktPupuk.forEach(p=>html+=`<div class="info-row"><span>${p.lahan} — ${p.pupuk}</span><span class="badge b-green">Pupuk</span></div>`);
-  aktPruning.forEach(p=>html+=`<div class="info-row"><span>${p.lahan} — ${p.jenis}</span><span class="badge b-blue">Pruning</span></div>`);
-  aktRacun.forEach(r=>html+=`<div class="info-row"><span>${r.lahan} — ${r.jenis}</span><span class="badge b-amber">Herbisida</span></div>`);
-  document.getElementById('d-aktivitas').innerHTML=html||'<div class="empty">Tidak ada aktivitas bulan ini</div>';
+  // Aktivitas bulan ini dari jadwal_aktif
+  const jadwalBulanIni=cache.jadwal.filter(j=>{
+    const d=new Date(j.tanggal_due);
+    return j.status==='pending'&&d.getMonth()+1===bulanNow&&d.getFullYear()===tahunNow;
+  });
+  const jenisColor2={Herbisida:'b-amber',Pupuk:'b-green',Pruning:'b-blue'};
+  const html=jadwalBulanIni.map(j=>`<div class="info-row"><span>${j.lahan} — ${j.detail||j.jenis}</span><span class="badge ${jenisColor2[j.jenis]||'b-gray'}">${j.jenis}</span></div>`).join('');
+  document.getElementById('d-aktivitas').innerHTML=html||'<div class="empty">Tidak ada jadwal bulan ini</div>';
 
   const m=lahanMap();
   document.getElementById('d-status').innerHTML=LAHAN_NAMES.map(n=>{
@@ -823,43 +711,6 @@ async function hapusLahan(id,nama){
   if(!confirm('Hapus data lahan '+nama+'?'))return;
   try{await sb('lahan','DELETE',null,'id=eq.'+id);await loadAll();renderLahan();showToast(nama+' dihapus');}
   catch(e){showToast('Gagal hapus');}
-}
-
-/* ===== PUPUK ===== */
-async function simpanPupuk(){
-  const lahan=document.getElementById('pup-lahan').value;
-  if(!lahan){showToast('Pilih lahan');return;}
-  const bln1=parseInt(document.getElementById('pup-bln1').value);
-  if(!bln1){showToast('Pilih bulan aplikasi');return;}
-  const dosis=parseFloat(document.getElementById('pup-dosis').value)||0;
-  const m=lahanMap();const d=m[lahan];
-  const data={lahan,pupuk:document.getElementById('pup-jenis').value,dosis,bln1,bln2:parseInt(document.getElementById('pup-bln2').value)||null,metode:document.getElementById('pup-metode').value,ket:document.getElementById('pup-ket').value,total_kg:d?Math.round((d.pokok||0)*dosis):0};
-  try{await sb('pupuk','POST',data);await loadAll();renderPupuk();renderPupukCal();showToast('Jadwal pupuk disimpan');}
-  catch(e){showToast('Gagal simpan');}
-}
-
-function renderPupuk(){
-  if(!cache.pupuk.length){document.getElementById('list-pupuk').innerHTML='<div class="empty">Belum ada jadwal</div>';return;}
-  document.getElementById('list-pupuk').innerHTML=cache.pupuk.map(p=>{
-    const blns=[MN[(p.bln1||1)-1],p.bln2?MN[p.bln2-1]:null].filter(Boolean).join(' & ');
-    return `<div class="item-card">
-      <div class="item-title">${p.lahan} — ${p.pupuk}</div>
-      <div class="item-sub">${p.dosis} kg/pokok &nbsp;|&nbsp; Total: ${fmt(p.total_kg||0)} kg &nbsp;|&nbsp; ${blns} &nbsp;|&nbsp; ${p.metode||''}</div>
-      ${p.ket?`<div class="item-sub">${p.ket}</div>`:''}
-      <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('pupuk','${p.id}')">Hapus</button></div>
-    </div>`;
-  }).join('');
-}
-
-function renderPupukCal(){
-  if(!cache.pupuk.length){document.getElementById('pup-cal').innerHTML='<div class="empty">Belum ada jadwal</div>';return;}
-  const byMonth={};
-  cache.pupuk.forEach(p=>[p.bln1,p.bln2].filter(Boolean).forEach(b=>{if(!byMonth[b])byMonth[b]=[];byMonth[b].push(COLORS[LAHAN_NAMES.indexOf(p.lahan)%COLORS.length]);}));
-  let html='<div class="cal-wrap">';
-  MN.forEach((m,i)=>{const bln=i+1;const dots=(byMonth[bln]||[]).map(c=>`<div class="dot" style="background:${c}"></div>`).join('');html+=`<div class="cal-cell"><div class="cal-mn">${m}</div><div class="dot-wrap">${dots}</div></div>`;});
-  html+='</div>';
-  const legend=LAHAN_NAMES.filter(n=>cache.pupuk.some(p=>p.lahan===n)).map(n=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#666;margin-right:8px"><span style="width:8px;height:8px;border-radius:50%;background:${COLORS[LAHAN_NAMES.indexOf(n)%COLORS.length]};flex-shrink:0"></span>${n}</span>`).join('');
-  document.getElementById('pup-cal').innerHTML=`<div style="margin-bottom:8px">${legend}</div>`+html;
 }
 
 /* ===== REALISASI PANEN ===== */
@@ -953,54 +804,6 @@ function renderRealisasi(){
   }).join('');
 }
 
-/* ===== PRUNING ===== */
-async function simpanPruning(){
-  const lahan=document.getElementById('pru-lahan').value;
-  if(!lahan){showToast('Pilih lahan');return;}
-  const m=lahanMap();const d=m[lahan];
-  const pokok=d?d.pokok:0;
-  const upah=parseInt(document.getElementById('pru-upah').value)||0;
-  const data={lahan,pokok,jenis:document.getElementById('pru-jenis').value,frek:document.getElementById('pru-frek').value,bulan:parseInt(document.getElementById('pru-bulan').value)||1,upah,biaya:pokok*upah,ket:document.getElementById('pru-ket').value};
-  try{await sb('pruning','POST',data);await loadAll();renderPruning();showToast('Jadwal pruning disimpan');}
-  catch(e){showToast('Gagal simpan');}
-}
-
-function renderPruning(){
-  if(!cache.pruning.length){document.getElementById('list-pruning').innerHTML='<div class="empty">Belum ada jadwal</div>';return;}
-  document.getElementById('list-pruning').innerHTML=cache.pruning.map(p=>`<div class="item-card">
-    <div class="item-title">${p.lahan} — ${p.jenis}</div>
-    <div class="item-sub">${p.frek} &nbsp;|&nbsp; Bulan: ${MNF[(p.bulan||1)-1]} &nbsp;|&nbsp; Upah: ${fmtRp(p.upah||0)}/pokok</div>
-    <div class="item-sub">Est. biaya: <b>${fmtRp(p.biaya||0)}</b></div>
-    ${p.ket?`<div class="item-sub">${p.ket}</div>`:''}
-    <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('pruning','${p.id}')">Hapus</button></div>
-  </div>`).join('');
-}
-
-/* ===== RACUN ===== */
-async function simpanRacun(){
-  const lahan=document.getElementById('rac-lahan').value;
-  if(!lahan){showToast('Pilih lahan');return;}
-  const m=lahanMap();const d=m[lahan];const ha=d?d.ha:0;
-  const frek=parseInt(document.getElementById('rac-frek').value)||2;
-  const mulai=parseInt(document.getElementById('rac-mulai').value)||1;
-  const upah=parseInt(document.getElementById('rac-upah').value)||0;
-  const interval=Math.floor(12/frek);
-  const bulanArr=[];for(let i=0;i<frek;i++)bulanArr.push(MN[((mulai-1+i*interval)%12)]);
-  const data={lahan,ha,jenis:document.getElementById('rac-jenis').value,area:document.getElementById('rac-area').value,dosis:parseFloat(document.getElementById('rac-dosis').value)||0,frek,upah,biaya_tahunan:Math.round(ha*upah*frek),mulai,bulan_aplikasi:bulanArr.join(','),ket:document.getElementById('rac-ket').value};
-  try{await sb('racun','POST',data);await loadAll();renderRacun();showToast('Jadwal herbisida disimpan');}
-  catch(e){showToast('Gagal simpan');}
-}
-
-function renderRacun(){
-  if(!cache.racun.length){document.getElementById('list-racun').innerHTML='<div class="empty">Belum ada jadwal</div>';return;}
-  document.getElementById('list-racun').innerHTML=cache.racun.map(r=>`<div class="item-card">
-    <div class="item-title">${r.lahan} — ${r.jenis}</div>
-    <div class="item-sub">Area: ${r.area} &nbsp;|&nbsp; Dosis: ${r.dosis} L/ha &nbsp;|&nbsp; ${r.frek}x/thn</div>
-    <div class="item-sub">Aplikasi: ${r.bulan_aplikasi||'-'} &nbsp;|&nbsp; Est. biaya/thn: <b>${fmtRp(r.biaya_tahunan||0)}</b></div>
-    ${r.ket?`<div class="item-sub">${r.ket}</div>`:''}
-    <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('racun','${r.id}')">Hapus</button></div>
-  </div>`).join('');
-}
 
 /* ===== LOG AKTIVITAS ===== */
 const INTERVAL_DEFAULT={
@@ -1062,7 +865,7 @@ async function hapusItem(table,id){
   try{
     await sb(table,'DELETE',null,'id=eq.'+id);
     await loadAll();
-    const renders={pupuk:()=>{renderPupuk();renderPupukCal();},panen:renderPanen,pruning:renderPruning,racun:renderRacun,realisasi_panen:renderRealisasi,log_aktivitas:renderLog,modal:renderModal,jadwal_aktif:renderJadwal};
+    const renders={realisasi_panen:renderRealisasi,log_aktivitas:renderLog,modal:renderModal,jadwal_aktif:renderJadwal};
     if(renders[table])renders[table]();
     showToast('Data dihapus');
   }catch(e){showToast('Gagal hapus');}
@@ -1263,16 +1066,12 @@ function exportCSV(){
   let csv='REKAP KEBUN SAWIT\n\n';
   csv+='=== DATA LAHAN ===\nNama,Ha,Pokok,Tahun Tanam,Kondisi,Topografi,Keterangan\n';
   cache.lahan.forEach(d=>csv+=`${d.nama},${d.ha},${d.pokok},${d.tahun},${d.kondisi},${d.topo},"${d.ket||''}"\n`);
-  csv+='\n=== JADWAL PEMUPUKAN ===\nLahan,Pupuk,Dosis/Pokok (kg),Total (kg),Bulan 1,Bulan 2,Metode,Catatan\n';
-  cache.pupuk.forEach(p=>csv+=`${p.lahan},${p.pupuk},${p.dosis},${p.total_kg},${MNF[(p.bln1||1)-1]},${p.bln2?MNF[p.bln2-1]:''},${p.metode},"${p.ket||''}"\n`);
+  csv+='\n=== JADWAL AKTIF ===\nLahan,Jenis,Detail,Tanggal Due,Interval (bln),Status,Sumber\n';
+  cache.jadwal.forEach(j=>csv+=`${j.lahan},${j.jenis},"${j.detail||''}",${j.tanggal_due},${j.interval_bulan||''},${j.status},${j.sumber}\n`);
   csv+='\n=== REALISASI PANEN ===\nLahan,Tanggal,Berat (kg),Harga Rp/kg,Upah/kg,Total Upah,Pendapatan Kotor,Pendapatan Bersih\n';
   cache.realisasi.forEach(r=>csv+=`${r.lahan},${r.tanggal},${r.kg_aktual},${r.harga_aktual},${r.upah_panen||0},${r.total_upah||0},${r.pendapatan},${r.pendapatan_bersih||r.pendapatan}\n`);
-  csv+='\n=== LOG AKTIVITAS ===\nLahan,Jenis,Tanggal,Pelaksana,Biaya,Keterangan\n';
+  csv+='\n=== HISTORI AKTIVITAS ===\nLahan,Jenis,Tanggal,Pelaksana,Biaya,Keterangan\n';
   cache.log.forEach(l=>csv+=`${l.lahan},${l.jenis},${l.tanggal},${l.pelaksana||''},${l.biaya||0},"${l.keterangan||''}"\n`);
-  csv+='\n=== JADWAL PRUNING ===\nLahan,Pokok,Jenis,Frekuensi,Bulan,Upah/Pokok,Est Biaya\n';
-  cache.pruning.forEach(p=>csv+=`${p.lahan},${p.pokok},"${p.jenis}",${p.frek},${MNF[(p.bulan||1)-1]},${p.upah},${p.biaya}\n`);
-  csv+='\n=== JADWAL HERBISIDA ===\nLahan,Ha,Herbisida,Area,Dosis L/ha,Frekuensi,Bulan Aplikasi,Upah/ha,Est Biaya/thn\n';
-  cache.racun.forEach(r=>csv+=`${r.lahan},${r.ha},${r.jenis},${r.area},${r.dosis},${r.frek}x,"${r.bulan_aplikasi||''}",${r.upah},${r.biaya_tahunan}\n`);
   csv+='\n=== MODAL / BIAYA AKTUAL ===\nLahan,Kategori,Jenis,Tanggal,Jumlah,Satuan,Harga Satuan,Total,Keterangan\n';
   cache.modal.forEach(m=>csv+=`${m.lahan},${m.kategori},${m.jenis},${m.tanggal},${m.jumlah},${m.satuan||''},${m.harga_satuan||0},${m.total||0},"${m.keterangan||''}"\n`);
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
@@ -1562,7 +1361,7 @@ document.addEventListener('touchend',async()=>{
     const activePanel=document.querySelector('.panel.active');
     if(activePanel){
       const id=activePanel.id.replace('p-','');
-      const renders={dashboard:renderDashboard,jadwal:renderJadwal,lahan:renderLahan,pupuk:()=>{renderPupuk();renderPupukCal();},realisasi:renderRealisasi,pruning:renderPruning,racun:renderRacun,log:renderLog,modal:renderModal,rekap:renderRekap};
+      const renders={dashboard:renderDashboard,jadwal:renderJadwal,realisasi:renderRealisasi,histori:renderLog,modal:renderModal,rekap:renderRekap,lahan:renderLahan};
       if(renders[id])renders[id]();
     }
     showToast('Data berhasil diperbarui');
