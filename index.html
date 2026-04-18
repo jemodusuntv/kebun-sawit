@@ -219,7 +219,7 @@ select:focus,input:focus{border-color:#1D9E75}
 <!-- JADWAL -->
 <div id="p-jadwal" class="panel">
   <div class="card">
-    <div class="card-title">Tambah jadwal manual</div>
+    <div class="card-title">Tambah jadwal</div>
     <div class="grid2">
       <div class="form-group"><label>Lahan</label><select id="jdw-lahan"><option value="">-- pilih --</option></select></div>
       <div class="form-group"><label>Jenis kegiatan</label>
@@ -230,10 +230,21 @@ select:focus,input:focus{border-color:#1D9E75}
         </select>
       </div>
     </div>
-    <div class="form-group"><label>Detail</label><select id="jdw-detail"></select></div>
+    <div class="form-group"><label>Detail</label>
+      <select id="jdw-detail" onchange="updateIntervalJadwal()"></select>
+    </div>
+    <div class="form-group"><label>Tanggal terakhir dilakukan</label>
+      <input type="date" id="jdw-terakhir">
+    </div>
     <div class="grid2">
-      <div class="form-group"><label>Tanggal jatuh tempo</label><input type="date" id="jdw-due"></div>
-      <div class="form-group"><label>Interval ulang (bulan)</label><input type="number" id="jdw-interval" placeholder="cth: 3" min="1" max="12"></div>
+      <div class="form-group">
+        <label>Interval (bulan) — otomatis</label>
+        <input type="number" id="jdw-interval" placeholder="cth: 3" min="1" max="12" readonly style="background:#f5f5f0;color:#1D9E75;font-weight:700">
+      </div>
+      <div class="form-group">
+        <label>Jatuh tempo (otomatis)</label>
+        <input type="text" id="jdw-due-preview" readonly style="background:#f5f5f0;color:#E67E22;font-weight:700" placeholder="—">
+      </div>
     </div>
     <button class="btn btn-green" onclick="simpanJadwalForm()">Tambah jadwal</button>
   </div>
@@ -611,8 +622,9 @@ function initSelects(){
   document.getElementById('rea-tanggal').value=todayStr();
   document.getElementById('log-tanggal').value=todayStr();
   document.getElementById('mod-tanggal').value=todayStr();
-  document.getElementById('jdw-due').value=todayStr();
+  document.getElementById('jdw-terakhir').value=todayStr();
   updateDetailJadwal();
+  document.getElementById('jdw-terakhir').addEventListener('change',hitungDueDate);
 }
 
 function switchTab(name,btn){
@@ -991,7 +1003,14 @@ function renderRacun(){
 }
 
 /* ===== LOG AKTIVITAS ===== */
-const INTERVAL_DEFAULT={Pemupukan:3,Herbisida:2,'Semprot herbisida':2,Pruning:6,'Pengendalian hama':1};
+const INTERVAL_DEFAULT={
+  Pemupukan:4,
+  Herbisida:2,
+  'Semprot herbisida':2,
+  Pruning:6,
+  'Pengendalian hama':1,
+  'Sensus pokok':12,
+};
 
 async function simpanLog(){
   const lahan=document.getElementById('log-lahan').value;
@@ -1265,17 +1284,60 @@ function exportCSV(){
   showToast('File CSV berhasil didownload');
 }
 
+// Interval standar per detail kegiatan (bulan) — berdasarkan standar agronomi sawit
 const DETAIL_JADWAL={
-  Herbisida:['Glifosat (Round-up)','Parakuat (Gramoxone)','Metil Metsulfuron','Fluroksipir','2,4-D Amin','Triklopir','Campuran (rotasi)'],
-  Pupuk:['Urea (N)','MOP/KCl (K)','TSP/SP-36 (P)','Dolomit (Mg)','Borate (B)','NPK Majemuk','Kiserit','PKSC/Janjang kosong'],
-  Pruning:['Sanitasi (pelepah kering)','Songgo 2','Songgo 1','Kastrasi (pohon muda)']
+  Herbisida:[
+    {label:'Glifosat — Piringan',interval:2},
+    {label:'Parakuat — Piringan',interval:2},
+    {label:'Glifosat — Gawangan mati',interval:3},
+    {label:'Metil Metsulfuron — Gawangan',interval:3},
+    {label:'Fluroksipir — Gulma berdaun lebar',interval:3},
+    {label:'2,4-D Amin — Gulma pakis',interval:4},
+    {label:'Triklopir — Gulma semak',interval:4},
+    {label:'Campuran (rotasi)',interval:3},
+  ],
+  Pupuk:[
+    {label:'Urea (N)',interval:4},
+    {label:'MOP/KCl (K)',interval:4},
+    {label:'TSP/SP-36 (P)',interval:6},
+    {label:'Dolomit (Mg)',interval:6},
+    {label:'Borate (B)',interval:6},
+    {label:'NPK Majemuk',interval:3},
+    {label:'Kiserit',interval:6},
+    {label:'PKSC/Janjang kosong',interval:6},
+  ],
+  Pruning:[
+    {label:'Sanitasi (pelepah kering)',interval:6},
+    {label:'Songgo 2',interval:6},
+    {label:'Songgo 1',interval:6},
+    {label:'Kastrasi (pohon muda/TBM)',interval:3},
+  ]
 };
 
 function updateDetailJadwal(){
   const jenis=document.getElementById('jdw-jenis').value;
   const sel=document.getElementById('jdw-detail');
   sel.innerHTML='';
-  (DETAIL_JADWAL[jenis]||[]).forEach(d=>sel.innerHTML+=`<option value="${d}">${d}</option>`);
+  (DETAIL_JADWAL[jenis]||[]).forEach(d=>sel.innerHTML+=`<option value="${d.label}" data-interval="${d.interval}">${d.label} (${d.interval} bln)</option>`);
+  updateIntervalJadwal();
+}
+
+function updateIntervalJadwal(){
+  const sel=document.getElementById('jdw-detail');
+  const opt=sel.options[sel.selectedIndex];
+  const interval=opt?opt.getAttribute('data-interval'):'';
+  document.getElementById('jdw-interval').value=interval||'';
+  hitungDueDate();
+}
+
+function hitungDueDate(){
+  const terakhir=document.getElementById('jdw-terakhir').value;
+  const interval=parseInt(document.getElementById('jdw-interval').value)||0;
+  if(!terakhir||!interval){document.getElementById('jdw-due-preview').value='—';return;}
+  const d=new Date(terakhir+'T00:00:00');
+  d.setMonth(d.getMonth()+interval);
+  const due=d.toISOString().slice(0,10);
+  document.getElementById('jdw-due-preview').value=due;
 }
 
 /* ===== JADWAL AKTIF ===== */
@@ -1298,16 +1360,18 @@ async function simpanJadwal(lahan,jenis,detail,due,interval,sumber='manual'){
 async function simpanJadwalForm(){
   const lahan=document.getElementById('jdw-lahan').value;
   if(!lahan){showToast('Pilih lahan');return;}
-  const due=document.getElementById('jdw-due').value;
-  if(!due){showToast('Isi tanggal jatuh tempo');return;}
+  const terakhir=document.getElementById('jdw-terakhir').value;
+  if(!terakhir){showToast('Isi tanggal terakhir dilakukan');return;}
+  const due=document.getElementById('jdw-due-preview').value;
+  if(!due||due==='—'){showToast('Pilih detail kegiatan dulu');return;}
   const jenis=document.getElementById('jdw-jenis').value;
   const detail=document.getElementById('jdw-detail').value||jenis;
   const interval=document.getElementById('jdw-interval').value;
   try{
     await simpanJadwal(lahan,jenis,detail,due,interval,'manual');
-    await loadAll();renderJadwal();showToast('Jadwal ditambahkan');
-    document.getElementById('jdw-interval').value='';
-    document.getElementById('jdw-due').value=todayStr();
+    await loadAll();renderJadwal();showToast('Jadwal ditambahkan — jatuh tempo: '+due);
+    document.getElementById('jdw-terakhir').value=todayStr();
+    document.getElementById('jdw-due-preview').value='—';
     updateDetailJadwal();
   }catch(e){showToast('Gagal: '+e.message);}
 }
