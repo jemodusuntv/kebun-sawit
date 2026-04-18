@@ -472,6 +472,7 @@ function logout(){
 if(sessionStorage.getItem('sawit_auth')==='1'){
   document.getElementById('pin-screen').style.display='none';
   document.getElementById('app-main').classList.remove('app-hidden');
+  initSelects();loadAll();
 }
 
 let LAHAN_NAMES=['Yurni','Dekol','Torus','Ujang','Padang','Telago','SD TLD','Roli','Quari ulu'];
@@ -513,6 +514,15 @@ function initSelects(){
   document.getElementById('jdw-terakhir').value=todayStr();
   updateDetailJadwal();
   document.getElementById('jdw-terakhir').addEventListener('change',hitungDueDate);
+  updateJenisModal();
+  ['mod-jumlah','mod-harga'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('input',()=>{
+      const j=parseFloat(document.getElementById('mod-jumlah').value)||0;
+      const h=parseInt(document.getElementById('mod-harga').value)||0;
+      document.getElementById('mod-total').value=Math.round(j*h);
+    });
+  });
 }
 
 function switchTab(name,btn){
@@ -812,14 +822,17 @@ function updateJenisModal(){
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  updateJenisModal();
-  ['mod-jumlah','mod-harga'].forEach(id=>{
-    document.getElementById(id).addEventListener('input',()=>{
-      const j=parseFloat(document.getElementById('mod-jumlah').value)||0;
-      const h=parseInt(document.getElementById('mod-harga').value)||0;
-      document.getElementById('mod-total').value=Math.round(j*h);
+  // Hanya jalankan kalau elemen ada (app sudah terbuka)
+  if(document.getElementById('mod-jumlah')){
+    updateJenisModal();
+    ['mod-jumlah','mod-harga'].forEach(id=>{
+      document.getElementById(id).addEventListener('input',()=>{
+        const j=parseFloat(document.getElementById('mod-jumlah').value)||0;
+        const h=parseInt(document.getElementById('mod-harga').value)||0;
+        document.getElementById('mod-total').value=Math.round(j*h);
+      });
     });
-  });
+  }
 });
 
 async function simpanModal(){
