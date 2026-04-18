@@ -276,11 +276,11 @@ select:focus,input:focus{border-color:#1D9E75}
     <div class="form-group"><label>Lahan</label><select id="rea-lahan"><option value="">-- pilih --</option></select></div>
     <div class="form-group"><label>Tanggal panen</label><input type="date" id="rea-tanggal"></div>
     <div class="grid2">
-      <div class="form-group"><label>Jumlah janjang (jjg)</label><input type="number" id="rea-jjg" placeholder="cth: 80" min="0"></div>
       <div class="form-group"><label>Berat aktual (kg)</label><input type="number" id="rea-kg" placeholder="cth: 1200" min="0"></div>
+      <div class="form-group"><label>Harga aktual (Rp/kg)</label><input type="number" id="rea-harga" placeholder="cth: 2300"></div>
     </div>
     <div class="grid2">
-      <div class="form-group"><label>Harga aktual (Rp/kg)</label><input type="number" id="rea-harga" placeholder="cth: 2300"></div>
+      <div class="form-group"><label>Upah panen (Rp/kg)</label><input type="number" id="rea-upah" placeholder="cth: 120" min="0"></div>
       <div class="form-group"><label>Keterangan</label><input type="text" id="rea-ket" placeholder="cth: sortasi baik"></div>
     </div>
     <button class="btn btn-orange" onclick="simpanRealisasi()">Catat hasil panen</button>
@@ -293,10 +293,14 @@ select:focus,input:focus{border-color:#1D9E75}
   </div>
 
   <div id="rea-summary" class="realisasi-sum" style="display:none">
-    <div class="grid3">
+    <div class="grid2" style="margin-bottom:8px">
       <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#1D9E75" id="rs-kg">0</div><div style="font-size:11px;color:#666">Total kg</div></div>
-      <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#E67E22" id="rs-income">0</div><div style="font-size:11px;color:#666">Total Rp</div></div>
       <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#185FA5" id="rs-rot">0</div><div style="font-size:11px;color:#666">Rotasi</div></div>
+    </div>
+    <div class="grid3">
+      <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:#E67E22" id="rs-income">0</div><div style="font-size:11px;color:#666">Pendapatan kotor</div></div>
+      <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:#E24B4A" id="rs-upah">0</div><div style="font-size:11px;color:#666">Total upah</div></div>
+      <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:#1D9E75" id="rs-bersih">0</div><div style="font-size:11px;color:#666">Pendapatan bersih</div></div>
     </div>
   </div>
 
@@ -405,7 +409,11 @@ select:focus,input:focus{border-color:#1D9E75}
       <div class="form-group"><label>Total (otomatis)</label><input type="number" id="mod-total" placeholder="0" readonly style="background:#f5f5f0"></div>
     </div>
     <div class="form-group"><label>Keterangan</label><input type="text" id="mod-ket" placeholder="cth: beli di kios Pak Budi"></div>
-    <button class="btn btn-green" onclick="simpanModal()">Simpan modal</button>
+    <div id="mod-edit-info" style="display:none;background:#e6f1fb;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:13px;color:#0C447C">
+      Mode edit aktif — perubahan akan menggantikan data lama.
+      <button onclick="batalEditModal()" style="float:right;background:none;border:none;color:#E24B4A;font-weight:700;font-size:13px;cursor:pointer">Batal</button>
+    </div>
+    <button id="mod-save-btn" class="btn btn-green" onclick="simpanModal()">Simpan modal</button>
   </div>
 
   <div style="overflow-x:auto;white-space:nowrap;margin-bottom:10px">
@@ -436,7 +444,7 @@ select:focus,input:focus{border-color:#1D9E75}
   <div class="section-lbl" style="margin-top:16px">Ringkasan produksi</div>
   <div class="metric-row-2">
     <div class="metric"><div class="metric-val" id="rek-kg-total" style="font-size:18px">-</div><div class="metric-lbl">Total kg dipanen</div></div>
-    <div class="metric"><div class="metric-val" id="rek-income-total" style="font-size:18px;color:#E67E22">-</div><div class="metric-lbl">Total pendapatan</div></div>
+    <div class="metric"><div class="metric-val" id="rek-income-total" style="font-size:18px;color:#E67E22">-</div><div class="metric-lbl">Pendapatan bersih</div></div>
   </div>
   <div class="metric-row-2">
     <div class="metric"><div class="metric-val" id="rek-modal-total" style="font-size:18px;color:#E24B4A">-</div><div class="metric-lbl">Total modal</div></div>
@@ -455,7 +463,7 @@ const SUPABASE_KEY='sb_publishable_9KvrV7Y8XXF_KBPBaqME3Q_CJSfnhMU';
 const H={'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
 
 /* ===== PIN SYSTEM ===== */
-const CORRECT_PIN='123321'; // GANTI PIN DI SINI
+const CORRECT_PIN='123456'; // GANTI PIN DI SINI
 let pinCurrent='';
 let pinLocked=false;
 let pinAttempts=0;
@@ -852,15 +860,16 @@ async function simpanRealisasi(){
   if(!tanggal){showToast('Isi tanggal panen');return;}
   const kg=parseFloat(document.getElementById('rea-kg').value)||0;
   const harga=parseInt(document.getElementById('rea-harga').value)||0;
-  const data={lahan,tanggal,jumlah_jjg:parseInt(document.getElementById('rea-jjg').value)||0,kg_aktual:kg,harga_aktual:harga,pendapatan:Math.round(kg*harga),keterangan:document.getElementById('rea-ket').value};
+  const upah_panen=parseInt(document.getElementById('rea-upah').value)||0;
+  const pendapatan=Math.round(kg*harga);
+  const total_upah=Math.round(kg*upah_panen);
+  const pendapatan_bersih=pendapatan-total_upah;
+  const data={lahan,tanggal,kg_aktual:kg,harga_aktual:harga,upah_panen,total_upah,pendapatan,pendapatan_bersih,keterangan:document.getElementById('rea-ket').value};
   try{
     await sb('realisasi_panen','POST',data);
-    await sb('log_aktivitas','POST',{lahan,jenis:'Panen',tanggal,keterangan:`${kg} kg — ${fmt(Math.round(kg*harga))} Rp`,pelaksana:'',biaya:0});
+    await sb('log_aktivitas','POST',{lahan,jenis:'Panen',tanggal,keterangan:`${kg} kg — kotor: ${fmtK(pendapatan)} — bersih: ${fmtK(pendapatan_bersih)}`,pelaksana:'',biaya:total_upah});
     await loadAll();renderRealisasi();showToast('Hasil panen dicatat');
-    document.getElementById('rea-kg').value='';
-    document.getElementById('rea-jjg').value='';
-    document.getElementById('rea-harga').value='';
-    document.getElementById('rea-ket').value='';
+    ['rea-kg','rea-harga','rea-upah','rea-ket'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('rea-tanggal').value=todayStr();
   }catch(e){showToast('Gagal: '+e.message);}
 }
@@ -871,21 +880,31 @@ function renderRealisasi(){
   const data=filterReaLahan?cache.realisasi.filter(r=>r.lahan===filterReaLahan):cache.realisasi;
   const totalKg=data.reduce((a,r)=>a+(r.kg_aktual||0),0);
   const totalIncome=data.reduce((a,r)=>a+(r.pendapatan||0),0);
+  const totalUpah=data.reduce((a,r)=>a+(r.total_upah||0),0);
+  const totalBersih=data.reduce((a,r)=>a+(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0),0);
   const sum=document.getElementById('rea-summary');
   if(data.length){
     sum.style.display='block';
     document.getElementById('rs-kg').textContent=fmt(totalKg)+' kg';
-    document.getElementById('rs-income').textContent=fmtK(totalIncome);
     document.getElementById('rs-rot').textContent=data.length+'x';
+    document.getElementById('rs-income').textContent=fmtK(totalIncome);
+    document.getElementById('rs-upah').textContent=fmtK(totalUpah);
+    document.getElementById('rs-bersih').textContent=fmtK(totalBersih);
   } else {sum.style.display='none';}
   if(!data.length){document.getElementById('list-realisasi').innerHTML='<div class="empty">Belum ada data panen</div>';return;}
-  document.getElementById('list-realisasi').innerHTML=data.map(r=>`<div class="item-card">
-    <div class="item-title">${r.lahan} <span style="font-weight:400;color:#888;font-size:13px">${r.tanggal}</span></div>
-    <div class="item-sub">${fmt(r.jumlah_jjg||0)} jjg &nbsp;|&nbsp; <b>${fmt(r.kg_aktual||0)} kg</b> &nbsp;|&nbsp; ${fmtRp(r.harga_aktual||0)}/kg</div>
-    <div class="item-sub" style="color:#E67E22;font-weight:700">Pendapatan: ${fmtK(r.pendapatan||0)}</div>
-    ${r.keterangan?`<div class="item-sub">${r.keterangan}</div>`:''}
-    <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('realisasi_panen','${r.id}')">Hapus</button></div>
-  </div>`).join('');
+  document.getElementById('list-realisasi').innerHTML=data.map(r=>{
+    const bersih=r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0;
+    const adaUpah=(r.upah_panen||0)>0;
+    return `<div class="item-card">
+      <div class="item-title">${r.lahan} <span style="font-weight:400;color:#888;font-size:13px">${r.tanggal}</span></div>
+      <div class="item-sub"><b>${fmt(r.kg_aktual||0)} kg</b> &nbsp;|&nbsp; ${fmtRp(r.harga_aktual||0)}/kg</div>
+      ${adaUpah?`<div class="item-sub">Upah: ${fmtRp(r.upah_panen||0)}/kg &nbsp;|&nbsp; Total upah: <span style="color:#E24B4A">${fmtK(r.total_upah||0)}</span></div>`:''}
+      <div class="item-sub">Kotor: <span style="color:#E67E22;font-weight:600">${fmtK(r.pendapatan||0)}</span>${adaUpah?` &nbsp;|&nbsp; Bersih: <span style="color:#1D9E75;font-weight:700">${fmtK(bersih)}</span>`:''}
+      </div>
+      ${r.keterangan?`<div class="item-sub">${r.keterangan}</div>`:''}
+      <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('realisasi_panen','${r.id}')">Hapus</button></div>
+    </div>`;
+  }).join('');
 }
 
 /* ===== PRUNING ===== */
@@ -1020,10 +1039,15 @@ async function simpanModal(){
   const total=Math.round(jumlah*harga);
   const data={lahan,kategori:document.getElementById('mod-kategori').value,jenis:document.getElementById('mod-jenis').value,tanggal,jumlah,satuan:document.getElementById('mod-satuan').value,harga_satuan:harga,total,keterangan:document.getElementById('mod-ket').value};
   try{
-    await sb('modal','POST',data);
-    await loadAll();renderModal();showToast('Modal disimpan');
-    ['mod-jumlah','mod-harga','mod-total','mod-ket'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('mod-tanggal').value=todayStr();
+    if(editModalId){
+      await sb('modal','PATCH',data,'id=eq.'+editModalId);
+      showToast('Modal berhasil diupdate');
+    } else {
+      await sb('modal','POST',data);
+      showToast('Modal disimpan');
+    }
+    await loadAll();renderModal();
+    batalEditModal();
   }catch(e){showToast('Gagal: '+e.message);}
 }
 
@@ -1054,19 +1078,56 @@ function renderModal(){
     <div class="item-sub">${m.jenis} &nbsp;|&nbsp; ${m.tanggal}</div>
     <div class="item-sub">${m.jumlah} ${m.satuan||''} x ${fmtRp(m.harga_satuan||0)} = <b style="color:#E24B4A">${fmtRp(m.total||0)}</b></div>
     ${m.keterangan?`<div class="item-sub">${m.keterangan}</div>`:''}
-    <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('modal','${m.id}')">Hapus</button></div>
+    <div class="item-actions">
+      <button class="btn-sm btn-gray" onclick="editModal('${m.id}')">Edit</button>
+      <button class="btn-sm btn-red" onclick="hapusItem('modal','${m.id}')">Hapus</button>
+    </div>
   </div>`).join('');
+}
+
+let editModalId=null;
+
+function editModal(id){
+  const m=cache.modal.find(x=>x.id===id);
+  if(!m)return;
+  editModalId=id;
+  document.getElementById('mod-lahan').value=m.lahan;
+  document.getElementById('mod-kategori').value=m.kategori;
+  updateJenisModal();
+  document.getElementById('mod-jenis').value=m.jenis;
+  document.getElementById('mod-tanggal').value=m.tanggal;
+  document.getElementById('mod-jumlah').value=m.jumlah;
+  document.getElementById('mod-satuan').value=m.satuan||'';
+  document.getElementById('mod-harga').value=m.harga_satuan||0;
+  document.getElementById('mod-total').value=m.total||0;
+  document.getElementById('mod-ket').value=m.keterangan||'';
+  document.getElementById('mod-save-btn').textContent='Update modal';
+  document.getElementById('mod-save-btn').style.background='#185FA5';
+  document.getElementById('mod-edit-info').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function batalEditModal(){
+  editModalId=null;
+  ['mod-jumlah','mod-harga','mod-total','mod-ket'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mod-lahan').value='';
+  document.getElementById('mod-tanggal').value=todayStr();
+  document.getElementById('mod-save-btn').textContent='Simpan modal';
+  document.getElementById('mod-save-btn').style.background='#1D9E75';
+  document.getElementById('mod-edit-info').style.display='none';
 }
 
 /* ===== REKAP ===== */
 function renderRekap(){
   const totalKgAll=cache.realisasi.reduce((a,r)=>a+(r.kg_aktual||0),0);
   const totalIncomeAll=cache.realisasi.reduce((a,r)=>a+(r.pendapatan||0),0);
+  const totalUpahAll=cache.realisasi.reduce((a,r)=>a+(r.total_upah||0),0);
+  const totalBersihAll=cache.realisasi.reduce((a,r)=>a+(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0),0);
   const totalModalAll=cache.modal.reduce((a,m)=>a+(m.total||0),0);
-  const ur=totalIncomeAll-totalModalAll;
+  const ur=totalBersihAll-totalModalAll;
 
   document.getElementById('rek-kg-total').textContent=fmt(totalKgAll)+' kg';
-  document.getElementById('rek-income-total').textContent=fmtK(totalIncomeAll);
+  document.getElementById('rek-income-total').textContent=fmtK(totalBersihAll);
   document.getElementById('rek-modal-total').textContent=fmtK(totalModalAll);
   document.getElementById('rek-ur-total').textContent=fmtK(Math.abs(ur));
   document.getElementById('rek-ur-lbl').textContent=ur>=0?'UNTUNG':'RUGI';
@@ -1077,11 +1138,13 @@ function renderRekap(){
   // Rekap untung/rugi per lahan
   const urCards=cache.lahan.map(d=>{
     const income=cache.realisasi.filter(r=>r.lahan===d.nama).reduce((a,r)=>a+(r.pendapatan||0),0);
+    const upahTotal=cache.realisasi.filter(r=>r.lahan===d.nama).reduce((a,r)=>a+(r.total_upah||0),0);
+    const incomeBersih=cache.realisasi.filter(r=>r.lahan===d.nama).reduce((a,r)=>a+(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0),0);
     const modalPupuk=cache.modal.filter(m=>m.lahan===d.nama&&m.kategori==='Pupuk').reduce((a,m)=>a+(m.total||0),0);
     const modalHerb=cache.modal.filter(m=>m.lahan===d.nama&&m.kategori==='Herbisida').reduce((a,m)=>a+(m.total||0),0);
     const modalPruning=cache.modal.filter(m=>m.lahan===d.nama&&m.kategori==='Pruning').reduce((a,m)=>a+(m.total||0),0);
     const totalModal=modalPupuk+modalHerb+modalPruning;
-    const selisih=income-totalModal;
+    const selisih=incomeBersih-totalModal;
     const untung=selisih>=0;
     return `<div class="rekap-card">
       <div class="rekap-head" style="display:flex;justify-content:space-between;align-items:center">
@@ -1089,7 +1152,9 @@ function renderRekap(){
         <span style="font-size:13px;font-weight:700;color:${untung?'#1D9E75':'#E24B4A'}">${untung?'UNTUNG':'RUGI'} ${fmtK(Math.abs(selisih))}</span>
       </div>
       <div class="rekap-body">
-        <div class="info-row"><span style="color:#666">Pendapatan aktual</span><span style="color:#E67E22;font-weight:600">${fmtK(income)}</span></div>
+        <div class="info-row"><span style="color:#666">Pendapatan kotor</span><span style="color:#E67E22">${fmtK(income)}</span></div>
+        <div class="info-row"><span style="color:#666">Upah panen</span><span style="color:#E24B4A">${fmtK(upahTotal)}</span></div>
+        <div class="info-row"><span style="color:#666">Pendapatan bersih</span><span style="color:#E67E22;font-weight:600">${fmtK(incomeBersih)}</span></div>
         <div class="info-row" style="padding:4px 0;border:none"><span style="color:#888;font-size:12px">Modal pupuk</span><span style="color:#888;font-size:12px">${fmtK(modalPupuk)}</span></div>
         <div class="info-row" style="padding:4px 0;border:none"><span style="color:#888;font-size:12px">Modal herbisida</span><span style="color:#888;font-size:12px">${fmtK(modalHerb)}</span></div>
         <div class="info-row" style="padding:4px 0"><span style="color:#888;font-size:12px">Modal pruning</span><span style="color:#888;font-size:12px">${fmtK(modalPruning)}</span></div>
@@ -1111,7 +1176,7 @@ function renderRekap(){
   // Rekap detail per lahan
   const cards=cache.lahan.map(d=>{
     const rotasiCount=cache.realisasi.filter(r=>r.lahan===d.nama).length;
-    const incomeAktual=cache.realisasi.filter(r=>r.lahan===d.nama).reduce((a,r)=>a+(r.pendapatan||0),0);
+    const incomeAktual=cache.realisasi.filter(r=>r.lahan===d.nama).reduce((a,r)=>a+(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0),0);
     const incomeEst=cache.panen.filter(p=>p.lahan===d.nama).reduce((a,p)=>a+(p.income||0),0);
     const modalTotal=cache.modal.filter(m=>m.lahan===d.nama).reduce((a,m)=>a+(m.total||0),0);
     return `<div class="rekap-card">
