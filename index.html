@@ -164,7 +164,6 @@ select:focus,input:focus{border-color:#1D9E75}
   <button class="nav-btn active" onclick="switchTab('dashboard',this)">Dashboard</button>
   <button class="nav-btn" onclick="switchTab('jadwal',this)">Jadwal</button>
   <button class="nav-btn" onclick="switchTab('realisasi',this)">Realisasi</button>
-  <button class="nav-btn" onclick="switchTab('histori',this)">Histori</button>
   <button class="nav-btn" onclick="switchTab('modal',this)">Modal</button>
   <button class="nav-btn" onclick="switchTab('rekap',this)">Rekap</button>
   <button class="nav-btn" onclick="switchTab('lahan',this)">Lahan</button>
@@ -192,19 +191,19 @@ select:focus,input:focus{border-color:#1D9E75}
     <div class="card-title">Aktivitas bulan ini — <span id="d-bulan"></span></div>
     <div id="d-aktivitas"><div class="loading">Memuat...</div></div>
   </div>
-  <div class="card">
-    <div class="card-title">Produksi kg per bulan</div>
-    <div style="position:relative;height:200px"><canvas id="chart-produksi" role="img" aria-label="Grafik produksi kg per bulan"></canvas></div>
-  </div>
   <div class="grid2" style="margin-bottom:12px">
     <div class="card" style="margin-bottom:0">
       <div class="card-title" style="font-size:13px">Pendapatan per lahan</div>
       <div style="position:relative;height:170px"><canvas id="chart-donat" role="img" aria-label="Grafik pendapatan per lahan"></canvas></div>
     </div>
     <div class="card" style="margin-bottom:0">
-      <div class="card-title" style="font-size:13px">Untung/Rugi per lahan</div>
-      <div style="position:relative;height:170px"><canvas id="chart-ur" role="img" aria-label="Grafik untung rugi per lahan"></canvas></div>
+      <div class="card-title" style="font-size:13px">Produksi kg per bulan</div>
+      <div style="position:relative;height:170px"><canvas id="chart-produksi" role="img" aria-label="Grafik produksi kg per bulan"></canvas></div>
     </div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="font-size:13px">Untung / Rugi per lahan</div>
+    <div style="position:relative" id="chart-ur-wrap"><canvas id="chart-ur" role="img" aria-label="Grafik untung rugi per lahan"></canvas></div>
   </div>
   <div class="card">
     <div class="card-title">Status semua lahan</div>
@@ -329,38 +328,6 @@ select:focus,input:focus{border-color:#1D9E75}
 
   <div class="section-lbl">Riwayat panen</div>
   <div id="list-realisasi"><div class="loading">Memuat...</div></div>
-</div>
-
-<!-- HISTORI LOG -->
-<div id="p-histori" class="panel">
-  <div class="card">
-    <div class="card-title">Catat aktivitas lapangan</div>
-    <div class="form-group"><label>Lahan</label><select id="log-lahan"><option value="">-- pilih --</option></select></div>
-    <div class="grid2">
-      <div class="form-group"><label>Jenis kegiatan</label>
-        <select id="log-jenis">
-          <option>Pemupukan</option><option>Panen</option><option>Pruning</option>
-          <option>Semprot herbisida</option><option>Pengendalian hama</option>
-          <option>Perbaikan jalan</option><option>Sensus pokok</option><option>Lainnya</option>
-        </select>
-      </div>
-      <div class="form-group"><label>Tanggal</label><input type="date" id="log-tanggal"></div>
-    </div>
-    <div class="grid2">
-      <div class="form-group"><label>Pelaksana</label><input type="text" id="log-pelaksana" placeholder="nama pekerja/mandor"></div>
-      <div class="form-group"><label>Biaya (Rp)</label><input type="number" id="log-biaya" placeholder="0" min="0"></div>
-    </div>
-    <div class="form-group"><label>Keterangan</label><input type="text" id="log-ket" placeholder="detail kegiatan"></div>
-    <button class="btn btn-green" onclick="simpanLog()">Catat aktivitas</button>
-  </div>
-
-  <div style="overflow-x:auto;white-space:nowrap;margin-bottom:10px">
-    <button class="btn-sm btn-gray" style="margin-right:6px;display:inline-block" onclick="filterLog('','')">Semua</button>
-    <span id="log-filter-btns"></span>
-  </div>
-
-  <div class="section-lbl">Riwayat aktivitas</div>
-  <div id="list-log"><div class="loading">Memuat...</div></div>
 </div>
 
 <!-- MODAL -->
@@ -511,10 +478,9 @@ let LAHAN_NAMES=['Yurni','Dekol','Torus','Ujang','Padang','Telago','SD TLD','Rol
 const MN=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const MNF=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const COLORS=['#1D9E75','#185FA5','#BA7517','#D85A30','#D4537E','#534AB7','#639922','#888780'];
-const LOG_COLORS={'Pemupukan':'#1D9E75','Panen':'#E67E22','Pruning':'#185FA5','Semprot herbisida':'#BA7517','Pengendalian hama':'#D85A30','Perbaikan jalan':'#888780','Sensus pokok':'#534AB7','Lainnya':'#888'};
 
-let cache={lahan:[],realisasi:[],log:[],modal:[],jadwal:[]};
-let filterReaLahan='', filterLogLahan='', filterModalLahan='', filterModalKat='';
+let cache={lahan:[],realisasi:[],modal:[],jadwal:[]};
+let filterReaLahan='', filterModalLahan='', filterModalKat='', filterJadwalMode='semua';
 
 async function sb(table,method='GET',body=null,params=''){
   const url=SUPABASE_URL+'/rest/v1/'+table+(params?'?'+params:'');
@@ -543,7 +509,6 @@ function setConn(ok){
 
 function initSelects(){
   document.getElementById('rea-tanggal').value=todayStr();
-  document.getElementById('log-tanggal').value=todayStr();
   document.getElementById('mod-tanggal').value=todayStr();
   document.getElementById('jdw-terakhir').value=todayStr();
   updateDetailJadwal();
@@ -555,27 +520,26 @@ function switchTab(name,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('p-'+name).classList.add('active');
-  const renders={dashboard:renderDashboard,jadwal:renderJadwal,realisasi:renderRealisasi,histori:renderLog,modal:renderModal,rekap:renderRekap,lahan:renderLahan};
+  const renders={dashboard:renderDashboard,jadwal:renderJadwal,realisasi:renderRealisasi,modal:renderModal,rekap:renderRekap,lahan:renderLahan};
   if(renders[name])renders[name]();
 }
 
 async function loadAll(){
   try{
-    const [lahan,realisasi,log,modal,jadwal]=await Promise.all([
+    const [lahan,realisasi,modal,jadwal]=await Promise.all([
       sb('lahan','GET',null,'order=nama'),
       sb('realisasi_panen','GET',null,'order=tanggal.desc'),
-      sb('log_aktivitas','GET',null,'order=tanggal.desc'),
       sb('modal','GET',null,'order=tanggal.desc'),
       sb('jadwal_aktif','GET',null,'order=tanggal_due'),
     ]);
-    cache={lahan,realisasi,log,modal,jadwal};
+    cache={lahan,realisasi,modal,jadwal};
     setConn(true);refreshLahanSelects();renderDashboard();
   }catch(e){setConn(false);console.error(e);}
 }
 
 function refreshLahanSelects(){
   LAHAN_NAMES=cache.lahan.map(l=>l.nama);
-  const selIds=['l-nama','rea-lahan','log-lahan','mod-lahan','jdw-lahan'];
+  const selIds=['l-nama','rea-lahan','mod-lahan','jdw-lahan'];
   selIds.forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const cur=el.value;
@@ -584,9 +548,7 @@ function refreshLahanSelects(){
     if(cur)el.value=cur;
   });
   const reaF=document.getElementById('rea-filter-btns');
-  const logF=document.getElementById('log-filter-btns');
   if(reaF)reaF.innerHTML=LAHAN_NAMES.map(n=>`<button class="btn-sm btn-gray" style="margin-right:6px;display:inline-block" onclick="filterRealisasi('${n}')">${n}</button>`).join('');
-  if(logF)logF.innerHTML=LAHAN_NAMES.map(n=>`<button class="btn-sm btn-gray" style="margin-right:6px;display:inline-block" onclick="filterLog('${n}')">${n}</button>`).join('');
 }
 
 function lahanMap(){const m={};cache.lahan.forEach(l=>m[l.nama]=l);return m;}
@@ -737,7 +699,6 @@ async function simpanRealisasi(){
       showToast('Data panen diupdate');
     } else {
       await sb('realisasi_panen','POST',data);
-      await sb('log_aktivitas','POST',{lahan,jenis:'Panen',tanggal,keterangan:`${kg} kg — kotor: ${fmtK(pendapatan)} — bersih: ${fmtK(pendapatan_bersih)}`,pelaksana:'',biaya:total_upah});
 
       // Auto-jadwal panen berikutnya — rotasi 14 hari
       const nextDate=new Date(tanggal+'T00:00:00');
@@ -822,67 +783,13 @@ function renderRealisasi(){
 }
 
 
-/* ===== LOG AKTIVITAS ===== */
-const INTERVAL_DEFAULT={
-  Pemupukan:4,
-  Herbisida:2,
-  'Semprot herbisida':2,
-  Pruning:6,
-  'Pengendalian hama':1,
-  'Sensus pokok':12,
-};
-
-async function simpanLog(){
-  const lahan=document.getElementById('log-lahan').value;
-  if(!lahan){showToast('Pilih lahan');return;}
-  const tanggal=document.getElementById('log-tanggal').value;
-  if(!tanggal){showToast('Isi tanggal');return;}
-  const jenis=document.getElementById('log-jenis').value;
-  const keterangan=document.getElementById('log-ket').value;
-  const data={lahan,jenis,tanggal,keterangan,pelaksana:document.getElementById('log-pelaksana').value,biaya:parseInt(document.getElementById('log-biaya').value)||0};
-  try{
-    await sb('log_aktivitas','POST',data);
-    // Auto-jadwal berikutnya
-    const intervalBulan=INTERVAL_DEFAULT[jenis];
-    if(intervalBulan){
-      const jenisJadwal=jenis==='Pemupukan'?'Pupuk':(jenis==='Semprot herbisida'||jenis==='Herbisida')?'Herbisida':jenis==='Pruning'?'Pruning':null;
-      if(jenisJadwal){
-        await autoJadwalDariLog(lahan,jenisJadwal,keterangan||jenis,tanggal,intervalBulan);
-        showToast('Aktivitas dicatat — jadwal berikutnya dibuat otomatis ('+intervalBulan+' bln)');
-      } else showToast('Aktivitas dicatat');
-    } else showToast('Aktivitas dicatat');
-    await loadAll();renderLog();
-    ['log-ket','log-pelaksana','log-biaya'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('log-tanggal').value=todayStr();
-  }catch(e){showToast('Gagal: '+e.message);}
-}
-
-function filterLog(lahan){filterLogLahan=lahan;renderLog();}
-
-function renderLog(){
-  const data=filterLogLahan?cache.log.filter(l=>l.lahan===filterLogLahan):cache.log;
-  if(!data.length){document.getElementById('list-log').innerHTML='<div class="empty">Belum ada aktivitas tercatat</div>';return;}
-  document.getElementById('list-log').innerHTML=`<div class="card" style="padding:8px 14px">`+data.map(l=>{
-    const warna=LOG_COLORS[l.jenis]||'#888';
-    return `<div class="log-item">
-      <div class="log-dot" style="background:${warna}"></div>
-      <div class="log-body">
-        <div class="log-title">${l.lahan} — ${l.jenis}</div>
-        <div class="log-meta">${l.tanggal}${l.pelaksana?' &nbsp;|&nbsp; '+l.pelaksana:''}${l.biaya?' &nbsp;|&nbsp; '+fmtRp(l.biaya):''}</div>
-        ${l.keterangan?`<div style="font-size:12px;color:#555;margin-top:2px">${l.keterangan}</div>`:''}
-      </div>
-      <button class="btn-sm btn-red" style="flex-shrink:0;padding:5px 10px;font-size:11px" onclick="hapusItem('log_aktivitas','${l.id}')">×</button>
-    </div>`;
-  }).join('')+'</div>';
-}
-
 /* ===== HAPUS ITEM ===== */
 async function hapusItem(table,id){
   if(!confirm('Hapus data ini?'))return;
   try{
     await sb(table,'DELETE',null,'id=eq.'+id);
     await loadAll();
-    const renders={realisasi_panen:renderRealisasi,log_aktivitas:renderLog,modal:renderModal,jadwal_aktif:renderJadwal};
+    const renders={realisasi_panen:renderRealisasi,modal:renderModal,jadwal_aktif:renderJadwal};
     if(renders[table])renders[table]();
     showToast('Data dihapus');
   }catch(e){showToast('Gagal hapus');}
@@ -1209,14 +1116,6 @@ async function tandaiSelesai(id){
   }catch(e){showToast('Gagal: '+e.message);}
 }
 
-async function autoJadwalDariLog(lahan,jenis,detail,tanggalSelesai,intervalBulan){
-  try{
-    const nextDate=new Date(tanggalSelesai+'T00:00:00');
-    nextDate.setMonth(nextDate.getMonth()+intervalBulan);
-    const nextStr=nextDate.toISOString().slice(0,10);
-    await simpanJadwal(lahan,jenis,detail,nextStr,intervalBulan,'auto');
-  }catch(e){console.error('Auto-jadwal gagal:',e);}
-}
 
 function filterJadwal(mode){filterJadwalMode=mode;renderJadwal();}
 
@@ -1291,7 +1190,7 @@ function renderCharts(){
   chartProduksi=new Chart(document.getElementById('chart-produksi'),{
     type:'bar',
     data:{labels:bulanLabels,datasets:[{label:'kg',data:bulanData,backgroundColor:'#1D9E75',borderRadius:5,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v>=1000?Math.round(v/1000)+'rb':v,font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:10}},grid:{display:false}}}}
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v>=1000?Math.round(v/1000)+'rb':v,font:{size:9}},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:9}},grid:{display:false}}}}
   });
 
   // 2. Donat — pendapatan per lahan
@@ -1312,7 +1211,7 @@ function renderCharts(){
     ctx.fillText('Belum ada data',ctx.canvas.width/2,ctx.canvas.height/2);
   }
 
-  // 3. Untung/Rugi per lahan (bar horizontal)
+  // 3. Untung/Rugi per lahan (bar horizontal) — tinggi dinamis
   const urNama=cache.lahan.map(l=>l.nama);
   const urData=urNama.map(n=>{
     const income=cache.realisasi.filter(r=>r.lahan===n).reduce((a,r)=>a+(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0),0);
@@ -1320,11 +1219,36 @@ function renderCharts(){
     return Math.round(income-modal);
   });
   const urColors=urData.map(v=>v>=0?'#1D9E75':'#E24B4A');
+  const urHeight=Math.max(180, urNama.length*44+60);
+  const urWrap=document.getElementById('chart-ur-wrap');
+  urWrap.style.height=urHeight+'px';
   if(chartUR)chartUR.destroy();
   chartUR=new Chart(document.getElementById('chart-ur'),{
     type:'bar',
-    data:{labels:urNama.map(n=>n.length>8?n.slice(0,8)+'…':n),datasets:[{data:urData,backgroundColor:urColors,borderRadius:4,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+(ctx.raw>=0?'Untung ':'Rugi ')+fmtK(Math.abs(ctx.raw))}}},scales:{x:{ticks:{callback:v=>v>=1000000?(v/1000000).toFixed(1)+'jt':v>=1000?Math.round(v/1000)+'rb':v,font:{size:9}},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:{font:{size:10}},grid:{display:false}}}}
+    data:{
+      labels:urNama,
+      datasets:[{data:urData,backgroundColor:urColors,borderRadius:4,borderSkipped:false}]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      indexAxis:'y',
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>' '+(ctx.raw>=0?'Untung ':'Rugi ')+fmtK(Math.abs(ctx.raw))}}
+      },
+      scales:{
+        x:{
+          ticks:{callback:v=>v>=1000000?(v/1000000).toFixed(1)+'jt':v>=1000?Math.round(v/1000)+'rb':v,font:{size:9}},
+          grid:{color:'rgba(0,0,0,0.05)'}
+        },
+        y:{
+          ticks:{font:{size:11},padding:4},
+          grid:{display:false}
+        }
+      },
+      layout:{padding:{right:8}}
+    }
   });
 }
 
@@ -1383,7 +1307,7 @@ document.addEventListener('touchend',async()=>{
     const activePanel=document.querySelector('.panel.active');
     if(activePanel){
       const id=activePanel.id.replace('p-','');
-      const renders={dashboard:renderDashboard,jadwal:renderJadwal,realisasi:renderRealisasi,histori:renderLog,modal:renderModal,rekap:renderRekap,lahan:renderLahan};
+      const renders={dashboard:renderDashboard,jadwal:renderJadwal,realisasi:renderRealisasi,modal:renderModal,rekap:renderRekap,lahan:renderLahan};
       if(renders[id])renders[id]();
     }
     showToast('Data berhasil diperbarui');
