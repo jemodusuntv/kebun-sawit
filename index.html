@@ -195,6 +195,20 @@ select:focus,input:focus{border-color:#1D9E75}
     <div id="d-aktivitas"><div class="loading">Memuat...</div></div>
   </div>
   <div class="card">
+    <div class="card-title">Produksi kg per bulan</div>
+    <div style="position:relative;height:200px"><canvas id="chart-produksi" role="img" aria-label="Grafik produksi kg per bulan"></canvas></div>
+  </div>
+  <div class="grid2" style="margin-bottom:12px">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title" style="font-size:13px">Pendapatan per lahan</div>
+      <div style="position:relative;height:170px"><canvas id="chart-donat" role="img" aria-label="Grafik pendapatan per lahan"></canvas></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title" style="font-size:13px">Untung/Rugi per lahan</div>
+      <div style="position:relative;height:170px"><canvas id="chart-ur" role="img" aria-label="Grafik untung rugi per lahan"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
     <div class="card-title">Status semua lahan</div>
     <div id="d-status"><div class="loading">Memuat...</div></div>
   </div>
@@ -688,6 +702,8 @@ function renderDashboard(){
     const lastPanen=panenTerakhir?'Panen: '+panenTerakhir.tanggal:'Belum ada panen';
     return `<div class="info-row"><span>${n} <small style="color:#888">${d.ha}ha / ${fmt(d.pokok||0)} pk &nbsp;|&nbsp; ${lastPanen}</small></span><span class="badge ${kb}">${d.kondisi}</span></div>`;
   }).join('');
+
+  loadChartJS(renderCharts);
 }
 
 /* ===== LAHAN ===== */
@@ -1178,6 +1194,76 @@ function exportCSV(){
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast('File CSV berhasil didownload');
+}
+
+/* ===== CHARTS ===== */
+let chartProduksi=null, chartDonat=null, chartUR=null;
+
+function renderCharts(){
+  if(typeof Chart==='undefined')return;
+
+  const CHART_COLORS=['#1D9E75','#185FA5','#BA7517','#D85A30','#D4537E','#534AB7','#639922','#888780','#E67E22'];
+
+  // 1. Produksi kg per bulan (6 bulan terakhir)
+  const now=new Date();
+  const bulanLabels=[];
+  const bulanData=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    bulanLabels.push(MN[d.getMonth()]+' '+String(d.getFullYear()).slice(2));
+    const total=cache.realisasi.filter(r=>{
+      const rd=new Date(r.tanggal);
+      return rd.getMonth()===d.getMonth()&&rd.getFullYear()===d.getFullYear();
+    }).reduce((a,r)=>a+(r.kg_aktual||0),0);
+    bulanData.push(Math.round(total));
+  }
+  if(chartProduksi)chartProduksi.destroy();
+  chartProduksi=new Chart(document.getElementById('chart-produksi'),{
+    type:'bar',
+    data:{labels:bulanLabels,datasets:[{label:'kg',data:bulanData,backgroundColor:'#1D9E75',borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v>=1000?Math.round(v/1000)+'rb':v,font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:10}},grid:{display:false}}}}
+  });
+
+  // 2. Donat — pendapatan per lahan
+  const lahanNama=cache.lahan.map(l=>l.nama);
+  const lahanIncome=lahanNama.map(n=>cache.realisasi.filter(r=>r.lahan===n).reduce((a,r)=>a+(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0),0));
+  const donatData=lahanIncome.filter(v=>v>0);
+  const donatLabels=lahanNama.filter((_,i)=>lahanIncome[i]>0);
+  if(chartDonat)chartDonat.destroy();
+  if(donatData.length){
+    chartDonat=new Chart(document.getElementById('chart-donat'),{
+      type:'doughnut',
+      data:{labels:donatLabels,datasets:[{data:donatData,backgroundColor:CHART_COLORS.slice(0,donatData.length),borderWidth:2,borderColor:'#fff'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:6}},tooltip:{callbacks:{label:ctx=>' '+fmtK(ctx.raw)}}}}
+    });
+  } else {
+    const ctx=document.getElementById('chart-donat').getContext('2d');
+    ctx.fillStyle='#aaa';ctx.font='13px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Belum ada data',ctx.canvas.width/2,ctx.canvas.height/2);
+  }
+
+  // 3. Untung/Rugi per lahan (bar horizontal)
+  const urNama=cache.lahan.map(l=>l.nama);
+  const urData=urNama.map(n=>{
+    const income=cache.realisasi.filter(r=>r.lahan===n).reduce((a,r)=>a+(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0),0);
+    const modal=cache.modal.filter(m=>m.lahan===n).reduce((a,m)=>a+(m.total||0),0);
+    return Math.round(income-modal);
+  });
+  const urColors=urData.map(v=>v>=0?'#1D9E75':'#E24B4A');
+  if(chartUR)chartUR.destroy();
+  chartUR=new Chart(document.getElementById('chart-ur'),{
+    type:'bar',
+    data:{labels:urNama.map(n=>n.length>8?n.slice(0,8)+'…':n),datasets:[{data:urData,backgroundColor:urColors,borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+(ctx.raw>=0?'Untung ':'Rugi ')+fmtK(Math.abs(ctx.raw))}}},scales:{x:{ticks:{callback:v=>v>=1000000?(v/1000000).toFixed(1)+'jt':v>=1000?Math.round(v/1000)+'rb':v,font:{size:9}},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:{font:{size:10}},grid:{display:false}}}}
+  });
+}
+
+// Load Chart.js sekali saja
+function loadChartJS(cb){
+  if(typeof Chart!=='undefined'){cb();return;}
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';
+  s.onload=cb;document.head.appendChild(s);
 }
 
 // Inisialisasi — hanya jalankan kalau sudah login
