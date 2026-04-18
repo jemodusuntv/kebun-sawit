@@ -223,14 +223,14 @@ select:focus,input:focus{border-color:#1D9E75}
     <div class="grid2">
       <div class="form-group"><label>Lahan</label><select id="jdw-lahan"><option value="">-- pilih --</option></select></div>
       <div class="form-group"><label>Jenis kegiatan</label>
-        <select id="jdw-jenis">
+        <select id="jdw-jenis" onchange="updateDetailJadwal()">
           <option value="Herbisida">Herbisida / Racun rumput</option>
           <option value="Pupuk">Pemupukan</option>
           <option value="Pruning">Pruning / Pelepah</option>
         </select>
       </div>
     </div>
-    <div class="form-group"><label>Detail (nama pupuk / jenis herbisida / dll)</label><input type="text" id="jdw-detail" placeholder="cth: Urea, Glifosat, Songgo 2"></div>
+    <div class="form-group"><label>Detail</label><select id="jdw-detail"></select></div>
     <div class="grid2">
       <div class="form-group"><label>Tanggal jatuh tempo</label><input type="date" id="jdw-due"></div>
       <div class="form-group"><label>Interval ulang (bulan)</label><input type="number" id="jdw-interval" placeholder="cth: 3" min="1" max="12"></div>
@@ -612,6 +612,7 @@ function initSelects(){
   document.getElementById('log-tanggal').value=todayStr();
   document.getElementById('mod-tanggal').value=todayStr();
   document.getElementById('jdw-due').value=todayStr();
+  updateDetailJadwal();
 }
 
 function switchTab(name,btn){
@@ -1264,6 +1265,19 @@ function exportCSV(){
   showToast('File CSV berhasil didownload');
 }
 
+const DETAIL_JADWAL={
+  Herbisida:['Glifosat (Round-up)','Parakuat (Gramoxone)','Metil Metsulfuron','Fluroksipir','2,4-D Amin','Triklopir','Campuran (rotasi)'],
+  Pupuk:['Urea (N)','MOP/KCl (K)','TSP/SP-36 (P)','Dolomit (Mg)','Borate (B)','NPK Majemuk','Kiserit','PKSC/Janjang kosong'],
+  Pruning:['Sanitasi (pelepah kering)','Songgo 2','Songgo 1','Kastrasi (pohon muda)']
+};
+
+function updateDetailJadwal(){
+  const jenis=document.getElementById('jdw-jenis').value;
+  const sel=document.getElementById('jdw-detail');
+  sel.innerHTML='';
+  (DETAIL_JADWAL[jenis]||[]).forEach(d=>sel.innerHTML+=`<option value="${d}">${d}</option>`);
+}
+
 /* ===== JADWAL AKTIF ===== */
 let filterJadwalMode='semua';
 
@@ -1292,9 +1306,9 @@ async function simpanJadwalForm(){
   try{
     await simpanJadwal(lahan,jenis,detail,due,interval,'manual');
     await loadAll();renderJadwal();showToast('Jadwal ditambahkan');
-    document.getElementById('jdw-detail').value='';
     document.getElementById('jdw-interval').value='';
     document.getElementById('jdw-due').value=todayStr();
+    updateDetailJadwal();
   }catch(e){showToast('Gagal: '+e.message);}
 }
 
