@@ -257,7 +257,11 @@ select:focus,input:focus{border-color:#1D9E75}
       <div class="form-group"><label>Upah panen (Rp/kg)</label><input type="number" id="rea-upah" placeholder="cth: 120" min="0"></div>
       <div class="form-group"><label>Keterangan</label><input type="text" id="rea-ket" placeholder="cth: sortasi baik"></div>
     </div>
-    <button class="btn btn-orange" onclick="simpanRealisasi()">Catat hasil panen</button>
+    <div id="rea-edit-info" style="display:none;background:#e6f1fb;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:13px;color:#0C447C">
+      Mode edit aktif — perubahan akan menggantikan data lama.
+      <button onclick="batalEditRealisasi()" style="float:right;background:none;border:none;color:#E24B4A;font-weight:700;font-size:13px;cursor:pointer">Batal</button>
+    </div>
+    <button id="rea-save-btn" class="btn btn-orange" onclick="simpanRealisasi()">Catat hasil panen</button>
   </div>
 
   <div class="section-lbl">Filter lahan</div>
@@ -767,6 +771,8 @@ function renderPupukCal(){
 }
 
 /* ===== REALISASI PANEN ===== */
+let editReaId=null;
+
 async function simpanRealisasi(){
   const lahan=document.getElementById('rea-lahan').value;
   if(!lahan){showToast('Pilih lahan');return;}
@@ -780,12 +786,43 @@ async function simpanRealisasi(){
   const pendapatan_bersih=pendapatan-total_upah;
   const data={lahan,tanggal,kg_aktual:kg,harga_aktual:harga,upah_panen,total_upah,pendapatan,pendapatan_bersih,keterangan:document.getElementById('rea-ket').value};
   try{
-    await sb('realisasi_panen','POST',data);
-    await sb('log_aktivitas','POST',{lahan,jenis:'Panen',tanggal,keterangan:`${kg} kg — kotor: ${fmtK(pendapatan)} — bersih: ${fmtK(pendapatan_bersih)}`,pelaksana:'',biaya:total_upah});
-    await loadAll();renderRealisasi();showToast('Hasil panen dicatat');
-    ['rea-kg','rea-harga','rea-upah','rea-ket'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('rea-tanggal').value=todayStr();
+    if(editReaId){
+      await sb('realisasi_panen','PATCH',data,'id=eq.'+editReaId);
+      showToast('Data panen diupdate');
+    } else {
+      await sb('realisasi_panen','POST',data);
+      await sb('log_aktivitas','POST',{lahan,jenis:'Panen',tanggal,keterangan:`${kg} kg — kotor: ${fmtK(pendapatan)} — bersih: ${fmtK(pendapatan_bersih)}`,pelaksana:'',biaya:total_upah});
+      showToast('Hasil panen dicatat');
+    }
+    await loadAll();renderRealisasi();
+    batalEditRealisasi();
   }catch(e){showToast('Gagal: '+e.message);}
+}
+
+function editRealisasi(id){
+  const r=cache.realisasi.find(x=>x.id===id);
+  if(!r)return;
+  editReaId=id;
+  document.getElementById('rea-lahan').value=r.lahan;
+  document.getElementById('rea-tanggal').value=r.tanggal;
+  document.getElementById('rea-kg').value=r.kg_aktual||'';
+  document.getElementById('rea-harga').value=r.harga_aktual||'';
+  document.getElementById('rea-upah').value=r.upah_panen||'';
+  document.getElementById('rea-ket').value=r.keterangan||'';
+  document.getElementById('rea-save-btn').textContent='Update panen';
+  document.getElementById('rea-save-btn').style.background='#185FA5';
+  document.getElementById('rea-edit-info').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function batalEditRealisasi(){
+  editReaId=null;
+  ['rea-kg','rea-harga','rea-upah','rea-ket'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('rea-lahan').value='';
+  document.getElementById('rea-tanggal').value=todayStr();
+  document.getElementById('rea-save-btn').textContent='Catat hasil panen';
+  document.getElementById('rea-save-btn').style.background='#E67E22';
+  document.getElementById('rea-edit-info').style.display='none';
 }
 
 function filterRealisasi(lahan){filterReaLahan=lahan;renderRealisasi();}
@@ -816,7 +853,10 @@ function renderRealisasi(){
       <div class="item-sub">Kotor: <span style="color:#E67E22;font-weight:600">${fmtK(r.pendapatan||0)}</span>${adaUpah?` &nbsp;|&nbsp; Bersih: <span style="color:#1D9E75;font-weight:700">${fmtK(bersih)}</span>`:''}
       </div>
       ${r.keterangan?`<div class="item-sub">${r.keterangan}</div>`:''}
-      <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('realisasi_panen','${r.id}')">Hapus</button></div>
+      <div class="item-actions">
+        <button class="btn-sm btn-gray" onclick="editRealisasi('${r.id}')">Edit</button>
+        <button class="btn-sm btn-red" onclick="hapusItem('realisasi_panen','${r.id}')">Hapus</button>
+      </div>
     </div>`;
   }).join('');
 }
