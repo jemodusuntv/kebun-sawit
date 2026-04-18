@@ -162,6 +162,7 @@ select:focus,input:focus{border-color:#1D9E75}
 
 <div class="nav">
   <button class="nav-btn active" onclick="switchTab('dashboard',this)">Dashboard</button>
+  <button class="nav-btn" onclick="switchTab('jadwal',this)">Jadwal</button>
   <button class="nav-btn" onclick="switchTab('lahan',this)">Lahan</button>
   <button class="nav-btn" onclick="switchTab('pupuk',this)">Pupuk</button>
   <button class="nav-btn" onclick="switchTab('realisasi',this)">Realisasi</button>
@@ -213,6 +214,45 @@ select:focus,input:focus{border-color:#1D9E75}
     <div id="d-status"><div class="loading">Memuat...</div></div>
   </div>
   <button class="btn btn-blue" onclick="exportCSV()" style="margin-top:4px">Export semua data ke CSV</button>
+</div>
+
+<!-- JADWAL -->
+<div id="p-jadwal" class="panel">
+  <div class="card">
+    <div class="card-title">Tambah jadwal manual</div>
+    <div class="grid2">
+      <div class="form-group"><label>Lahan</label><select id="jdw-lahan"><option value="">-- pilih --</option></select></div>
+      <div class="form-group"><label>Jenis kegiatan</label>
+        <select id="jdw-jenis">
+          <option value="Herbisida">Herbisida / Racun rumput</option>
+          <option value="Pupuk">Pemupukan</option>
+          <option value="Pruning">Pruning / Pelepah</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>Detail (nama pupuk / jenis herbisida / dll)</label><input type="text" id="jdw-detail" placeholder="cth: Urea, Glifosat, Songgo 2"></div>
+    <div class="grid2">
+      <div class="form-group"><label>Tanggal jatuh tempo</label><input type="date" id="jdw-due"></div>
+      <div class="form-group"><label>Interval ulang (bulan)</label><input type="number" id="jdw-interval" placeholder="cth: 3" min="1" max="12"></div>
+    </div>
+    <button class="btn btn-green" onclick="simpanJadwalForm()">Tambah jadwal</button>
+  </div>
+
+  <div style="overflow-x:auto;white-space:nowrap;margin-bottom:10px">
+    <button class="btn-sm btn-gray" style="margin-right:6px;display:inline-block" onclick="filterJadwal('semua')">Semua</button>
+    <button class="btn-sm" style="margin-right:6px;display:inline-block;background:#fff5f5;color:#c0392b;border:1px solid #fcc;border-radius:7px;padding:7px 14px;font-size:13px" onclick="filterJadwal('terlewat')">Terlewat</button>
+    <button class="btn-sm" style="margin-right:6px;display:inline-block;background:#fff8e6;color:#8B4000;border:1px solid #f5c;border-radius:7px;padding:7px 14px;font-size:13px" onclick="filterJadwal('dekat')">Minggu ini</button>
+    <button class="btn-sm" style="margin-right:6px;display:inline-block;background:#e1f5ee;color:#085041;border:1px solid #9FE1CB;border-radius:7px;padding:7px 14px;font-size:13px" onclick="filterJadwal('pending')">Upcoming</button>
+    <button class="btn-sm" style="margin-right:6px;display:inline-block;background:#f0f0f0;color:#555;border:none;border-radius:7px;padding:7px 14px;font-size:13px" onclick="filterJadwal('selesai')">Selesai</button>
+  </div>
+
+  <div id="jdw-summary" style="display:flex;gap:8px;margin-bottom:12px">
+    <div class="metric" style="flex:1"><div class="metric-val" id="jdw-tot-terlewat" style="color:#E24B4A;font-size:18px">0</div><div class="metric-lbl">Terlewat</div></div>
+    <div class="metric" style="flex:1"><div class="metric-val" id="jdw-tot-dekat" style="color:#E67E22;font-size:18px">0</div><div class="metric-lbl">Minggu ini</div></div>
+    <div class="metric" style="flex:1"><div class="metric-val" id="jdw-tot-pending" style="color:#1D9E75;font-size:18px">0</div><div class="metric-lbl">Upcoming</div></div>
+  </div>
+
+  <div id="list-jadwal"><div class="loading">Memuat...</div></div>
 </div>
 
 <!-- LAHAN -->
@@ -534,7 +574,7 @@ const MNF=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','S
 const COLORS=['#1D9E75','#185FA5','#BA7517','#D85A30','#D4537E','#534AB7','#639922','#888780'];
 const LOG_COLORS={'Pemupukan':'#1D9E75','Panen':'#E67E22','Pruning':'#185FA5','Semprot herbisida':'#BA7517','Pengendalian hama':'#D85A30','Perbaikan jalan':'#888780','Sensus pokok':'#534AB7','Lainnya':'#888'};
 
-let cache={lahan:[],pupuk:[],pruning:[],racun:[],realisasi:[],log:[],modal:[]};
+let cache={lahan:[],pupuk:[],pruning:[],racun:[],realisasi:[],log:[],modal:[],jadwal:[]};
 let filterReaLahan='', filterLogLahan='', filterModalLahan='', filterModalKat='';
 
 async function sb(table,method='GET',body=null,params=''){
@@ -571,6 +611,7 @@ function initSelects(){
   document.getElementById('rea-tanggal').value=todayStr();
   document.getElementById('log-tanggal').value=todayStr();
   document.getElementById('mod-tanggal').value=todayStr();
+  document.getElementById('jdw-due').value=todayStr();
 }
 
 function switchTab(name,btn){
@@ -578,13 +619,13 @@ function switchTab(name,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('p-'+name).classList.add('active');
-  const renders={dashboard:renderDashboard,lahan:renderLahan,pupuk:()=>{renderPupuk();renderPupukCal();},realisasi:renderRealisasi,pruning:renderPruning,racun:renderRacun,log:renderLog,modal:renderModal,rekap:renderRekap};
+  const renders={dashboard:renderDashboard,jadwal:renderJadwal,lahan:renderLahan,pupuk:()=>{renderPupuk();renderPupukCal();},realisasi:renderRealisasi,pruning:renderPruning,racun:renderRacun,log:renderLog,modal:renderModal,rekap:renderRekap};
   if(renders[name])renders[name]();
 }
 
 async function loadAll(){
   try{
-    const [lahan,pupuk,pruning,racun,realisasi,log,modal]=await Promise.all([
+    const [lahan,pupuk,pruning,racun,realisasi,log,modal,jadwal]=await Promise.all([
       sb('lahan','GET',null,'order=nama'),
       sb('pupuk','GET',null,'order=created_at'),
       sb('pruning','GET',null,'order=created_at'),
@@ -592,15 +633,16 @@ async function loadAll(){
       sb('realisasi_panen','GET',null,'order=tanggal.desc'),
       sb('log_aktivitas','GET',null,'order=tanggal.desc'),
       sb('modal','GET',null,'order=tanggal.desc'),
+      sb('jadwal_aktif','GET',null,'order=tanggal_due'),
     ]);
-    cache={lahan,pupuk,pruning,racun,realisasi,log,modal};
+    cache={lahan,pupuk,pruning,racun,realisasi,log,modal,jadwal};
     setConn(true);refreshLahanSelects();renderDashboard();
   }catch(e){setConn(false);console.error(e);}
 }
 
 function refreshLahanSelects(){
   LAHAN_NAMES=cache.lahan.map(l=>l.nama);
-  const selIds=['l-nama','pup-lahan','pru-lahan','rac-lahan','rea-lahan','log-lahan','mod-lahan'];
+  const selIds=['l-nama','pup-lahan','pru-lahan','rac-lahan','rea-lahan','log-lahan','mod-lahan','jdw-lahan'];
   selIds.forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const cur=el.value;
@@ -670,18 +712,31 @@ function renderDashboard(){
   document.getElementById('d-panen-bulan').textContent=fmt(totalKgBulan)+' kg';
   document.getElementById('d-income-bulan').textContent=fmtK(totalIncomeBulan);
 
-  const jadwal=getJadwalMingguIni();
-  const alertBox=document.getElementById('alert-box');
-  if(jadwal.length){
-    alertBox.innerHTML=jadwal.map(a=>{
-      const cls=a.urgensi==='merah'?'alert-merah':a.urgensi==='kuning'?'alert-kuning':'alert-hijau';
-      return `<div class="alert-card ${cls}"><div class="alert-title">${a.tipe} — ${a.lahan}</div><div class="alert-sub">${a.detail}</div></div>`;
-    }).join('');
-  } else {
-    alertBox.innerHTML='';
-  }
+  // Alert jadwal jatuh tempo dari jadwal_aktif
+  const today=new Date();today.setHours(0,0,0,0);
+  const jadwalAlert=cache.jadwal.filter(j=>{
+    if(j.status!=='pending')return false;
+    const d=new Date(j.tanggal_due);
+    const diff=Math.round((d-today)/(1000*60*60*24));
+    return diff<=7;
+  }).sort((a,b)=>new Date(a.tanggal_due)-new Date(b.tanggal_due));
 
-  const mingguHtml=jadwal.length?jadwal.map(a=>`<div class="info-row"><span>${a.lahan} — <b>${a.tipe}</b></span><span class="badge ${a.urgensi==='merah'?'b-red':a.urgensi==='kuning'?'b-amber':'b-green'}">${a.tipe}</span></div>`).join(''):'<div class="empty">Tidak ada jadwal minggu ini</div>';
+  const alertBox=document.getElementById('alert-box');
+  if(jadwalAlert.length){
+    alertBox.innerHTML=jadwalAlert.map(j=>{
+      const st=statusJadwal(j.tanggal_due);
+      const cls=st.diff<0?'alert-merah':st.diff<=3?'alert-kuning':'alert-hijau';
+      return `<div class="alert-card ${cls}" onclick="document.querySelector('.nav-btn:nth-child(2)').click()" style="cursor:pointer">
+        <div class="alert-title">${j.lahan} — ${j.jenis}</div>
+        <div class="alert-sub">${j.detail} &nbsp;|&nbsp; ${st.diff<0?'Terlewat '+Math.abs(st.diff)+' hari':st.diff===0?'Hari ini':''+st.diff+' hari lagi'}</div>
+      </div>`;
+    }).join('');
+  } else {alertBox.innerHTML='';}
+
+  const mingguHtml=jadwalAlert.length?jadwalAlert.map(j=>{
+    const st=statusJadwal(j.tanggal_due);
+    return `<div class="info-row"><span>${j.lahan} — <b>${j.detail||j.jenis}</b></span><span class="badge ${st.diff<0?'b-red':st.diff<=3?'b-amber':'b-green'}">${st.diff<0?'Terlewat':st.diff===0?'Hari ini':st.diff+' hr'}</span></div>`;
+  }).join(''):'<div class="empty">Tidak ada jadwal minggu ini</div>';
   document.getElementById('d-minggu').innerHTML=mingguHtml;
 
   const aktPupuk=cache.pupuk.filter(p=>p.bln1===bulanNow||p.bln2===bulanNow);
@@ -935,15 +990,28 @@ function renderRacun(){
 }
 
 /* ===== LOG AKTIVITAS ===== */
+const INTERVAL_DEFAULT={Pemupukan:3,Herbisida:2,'Semprot herbisida':2,Pruning:6,'Pengendalian hama':1};
+
 async function simpanLog(){
   const lahan=document.getElementById('log-lahan').value;
   if(!lahan){showToast('Pilih lahan');return;}
   const tanggal=document.getElementById('log-tanggal').value;
   if(!tanggal){showToast('Isi tanggal');return;}
-  const data={lahan,jenis:document.getElementById('log-jenis').value,tanggal,keterangan:document.getElementById('log-ket').value,pelaksana:document.getElementById('log-pelaksana').value,biaya:parseInt(document.getElementById('log-biaya').value)||0};
+  const jenis=document.getElementById('log-jenis').value;
+  const keterangan=document.getElementById('log-ket').value;
+  const data={lahan,jenis,tanggal,keterangan,pelaksana:document.getElementById('log-pelaksana').value,biaya:parseInt(document.getElementById('log-biaya').value)||0};
   try{
     await sb('log_aktivitas','POST',data);
-    await loadAll();renderLog();showToast('Aktivitas dicatat');
+    // Auto-jadwal berikutnya
+    const intervalBulan=INTERVAL_DEFAULT[jenis];
+    if(intervalBulan){
+      const jenisJadwal=jenis==='Pemupukan'?'Pupuk':(jenis==='Semprot herbisida'||jenis==='Herbisida')?'Herbisida':jenis==='Pruning'?'Pruning':null;
+      if(jenisJadwal){
+        await autoJadwalDariLog(lahan,jenisJadwal,keterangan||jenis,tanggal,intervalBulan);
+        showToast('Aktivitas dicatat — jadwal berikutnya dibuat otomatis ('+intervalBulan+' bln)');
+      } else showToast('Aktivitas dicatat');
+    } else showToast('Aktivitas dicatat');
+    await loadAll();renderLog();
     ['log-ket','log-pelaksana','log-biaya'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('log-tanggal').value=todayStr();
   }catch(e){showToast('Gagal: '+e.message);}
@@ -974,7 +1042,7 @@ async function hapusItem(table,id){
   try{
     await sb(table,'DELETE',null,'id=eq.'+id);
     await loadAll();
-    const renders={pupuk:()=>{renderPupuk();renderPupukCal();},panen:renderPanen,pruning:renderPruning,racun:renderRacun,realisasi_panen:renderRealisasi,log_aktivitas:renderLog,modal:renderModal};
+    const renders={pupuk:()=>{renderPupuk();renderPupukCal();},panen:renderPanen,pruning:renderPruning,racun:renderRacun,realisasi_panen:renderRealisasi,log_aktivitas:renderLog,modal:renderModal,jadwal_aktif:renderJadwal};
     if(renders[table])renders[table]();
     showToast('Data dihapus');
   }catch(e){showToast('Gagal hapus');}
@@ -1196,6 +1264,109 @@ function exportCSV(){
   showToast('File CSV berhasil didownload');
 }
 
+/* ===== JADWAL AKTIF ===== */
+let filterJadwalMode='semua';
+
+function statusJadwal(due){
+  const today=new Date();today.setHours(0,0,0,0);
+  const d=parseDate(due);
+  const diff=Math.round((d-today)/(1000*60*60*24));
+  if(diff<0)return{label:'Terlewat',cls:'b-red',color:'#E24B4A',diff};
+  if(diff<=7)return{label:'Minggu ini',cls:'b-amber',color:'#E67E22',diff};
+  return{label:diff+' hari lagi',cls:'b-green',color:'#1D9E75',diff};
+}
+
+async function simpanJadwal(lahan,jenis,detail,due,interval,sumber='manual'){
+  const data={lahan,jenis,detail:detail||jenis,tanggal_due:due,interval_bulan:parseInt(interval)||null,status:'pending',sumber};
+  await sb('jadwal_aktif','POST',data);
+}
+
+async function simpanJadwalForm(){
+  const lahan=document.getElementById('jdw-lahan').value;
+  if(!lahan){showToast('Pilih lahan');return;}
+  const due=document.getElementById('jdw-due').value;
+  if(!due){showToast('Isi tanggal jatuh tempo');return;}
+  const jenis=document.getElementById('jdw-jenis').value;
+  const detail=document.getElementById('jdw-detail').value||jenis;
+  const interval=document.getElementById('jdw-interval').value;
+  try{
+    await simpanJadwal(lahan,jenis,detail,due,interval,'manual');
+    await loadAll();renderJadwal();showToast('Jadwal ditambahkan');
+    document.getElementById('jdw-detail').value='';
+    document.getElementById('jdw-interval').value='';
+    document.getElementById('jdw-due').value=todayStr();
+  }catch(e){showToast('Gagal: '+e.message);}
+}
+
+async function tandaiSelesai(id){
+  const j=cache.jadwal.find(x=>x.id===id);
+  if(!j)return;
+  try{
+    await sb('jadwal_aktif','PATCH',{status:'selesai'},'id=eq.'+id);
+    // Auto-generate jadwal berikutnya jika ada interval
+    if(j.interval_bulan){
+      const nextDate=new Date();
+      nextDate.setMonth(nextDate.getMonth()+parseInt(j.interval_bulan));
+      const nextStr=nextDate.toISOString().slice(0,10);
+      await simpanJadwal(j.lahan,j.jenis,j.detail,nextStr,j.interval_bulan,'auto');
+    }
+    await loadAll();renderJadwal();renderDashboard();
+    showToast('Ditandai selesai'+(j.interval_bulan?' — jadwal berikutnya dibuat otomatis':''));
+  }catch(e){showToast('Gagal: '+e.message);}
+}
+
+async function autoJadwalDariLog(lahan,jenis,detail,tanggalSelesai,intervalBulan){
+  try{
+    const nextDate=new Date(tanggalSelesai+'T00:00:00');
+    nextDate.setMonth(nextDate.getMonth()+intervalBulan);
+    const nextStr=nextDate.toISOString().slice(0,10);
+    await simpanJadwal(lahan,jenis,detail,nextStr,intervalBulan,'auto');
+  }catch(e){console.error('Auto-jadwal gagal:',e);}
+}
+
+function filterJadwal(mode){filterJadwalMode=mode;renderJadwal();}
+
+function renderJadwal(){
+  let data=[...cache.jadwal].sort((a,b)=>new Date(a.tanggal_due)-new Date(b.tanggal_due));
+  const today=new Date();today.setHours(0,0,0,0);
+
+  const terlewat=data.filter(j=>j.status==='pending'&&new Date(j.tanggal_due)<today).length;
+  const dekat=data.filter(j=>{const d=new Date(j.tanggal_due);const diff=Math.round((d-today)/(1000*60*60*24));return j.status==='pending'&&diff>=0&&diff<=7;}).length;
+  const pending=data.filter(j=>{const d=new Date(j.tanggal_due);return j.status==='pending'&&d>=today;}).length;
+  document.getElementById('jdw-tot-terlewat').textContent=terlewat;
+  document.getElementById('jdw-tot-dekat').textContent=dekat;
+  document.getElementById('jdw-tot-pending').textContent=pending;
+
+  if(filterJadwalMode==='terlewat')data=data.filter(j=>j.status==='pending'&&new Date(j.tanggal_due)<today);
+  else if(filterJadwalMode==='dekat')data=data.filter(j=>{const d=new Date(j.tanggal_due);const diff=Math.round((d-today)/(1000*60*60*24));return j.status==='pending'&&diff>=0&&diff<=7;});
+  else if(filterJadwalMode==='pending')data=data.filter(j=>j.status==='pending');
+  else if(filterJadwalMode==='selesai')data=data.filter(j=>j.status==='selesai');
+
+  if(!data.length){document.getElementById('list-jadwal').innerHTML='<div class="empty">Tidak ada jadwal</div>';return;}
+
+  const jenisIcon={Herbisida:'🌿',Pupuk:'🌱',Pruning:'✂️'};
+  const jenisColor={Herbisida:'b-amber',Pupuk:'b-green',Pruning:'b-blue'};
+
+  document.getElementById('list-jadwal').innerHTML=data.map(j=>{
+    const st=statusJadwal(j.tanggal_due);
+    const selesai=j.status==='selesai';
+    return `<div class="item-card" style="${selesai?'opacity:0.6':''}border-left:3px solid ${selesai?'#ccc':st.color}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="item-title">${j.lahan} <span class="badge ${jenisColor[j.jenis]||'b-gray'}">${j.jenis}</span> ${j.sumber==='auto'?'<span style="font-size:10px;color:#aaa">auto</span>':''}</div>
+          <div class="item-sub">${j.detail||''}</div>
+          <div class="item-sub" style="margin-top:4px">Jatuh tempo: <b>${j.tanggal_due}</b> ${j.interval_bulan?'&nbsp;|&nbsp; Ulang tiap '+j.interval_bulan+' bln':''}</div>
+        </div>
+        <span class="badge ${selesai?'b-gray':st.cls}" style="flex-shrink:0;margin-left:8px">${selesai?'Selesai':st.label}</span>
+      </div>
+      <div class="item-actions">
+        ${!selesai?`<button class="btn-sm btn-green" onclick="tandaiSelesai('${j.id}')">Selesai</button>`:''}
+        <button class="btn-sm btn-red" onclick="hapusItem('jadwal_aktif','${j.id}')">Hapus</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 /* ===== CHARTS ===== */
 let chartProduksi=null, chartDonat=null, chartUR=null;
 
@@ -1313,7 +1484,7 @@ document.addEventListener('touchend',async()=>{
     const activePanel=document.querySelector('.panel.active');
     if(activePanel){
       const id=activePanel.id.replace('p-','');
-      const renders={dashboard:renderDashboard,lahan:renderLahan,pupuk:()=>{renderPupuk();renderPupukCal();},realisasi:renderRealisasi,pruning:renderPruning,racun:renderRacun,log:renderLog,modal:renderModal,rekap:renderRekap};
+      const renders={dashboard:renderDashboard,jadwal:renderJadwal,lahan:renderLahan,pupuk:()=>{renderPupuk();renderPupukCal();},realisasi:renderRealisasi,pruning:renderPruning,racun:renderRacun,log:renderLog,modal:renderModal,rekap:renderRekap};
       if(renders[id])renders[id]();
     }
     showToast('Data berhasil diperbarui');
