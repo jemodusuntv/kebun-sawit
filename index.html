@@ -10,6 +10,25 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
+
+/* PIN SCREEN */
+.pin-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f0;padding:24px}
+.pin-logo{width:72px;height:72px;background:#1D9E75;border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.pin-logo svg{width:40px;height:40px;fill:#fff}
+.pin-title{font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:6px}
+.pin-sub{font-size:14px;color:#888;margin-bottom:32px}
+.pin-dots{display:flex;gap:14px;margin-bottom:32px}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid #ccc;background:transparent;transition:all .15s}
+.pin-dot.filled{background:#1D9E75;border-color:#1D9E75}
+.pin-dot.error{background:#E24B4A;border-color:#E24B4A}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:280px}
+.pin-btn{padding:18px;border:none;border-radius:14px;background:#fff;color:#1a1a1a;font-size:22px;font-weight:600;cursor:pointer;border:1px solid #e8e8e8;transition:all .1s}
+.pin-btn:active{background:#e8e8e8;transform:scale(0.95)}
+.pin-btn.del{background:#fee;color:#c0392b;border-color:#fcc;font-size:18px}
+.pin-btn.empty{background:transparent;border:none;pointer-events:none}
+.pin-error{color:#E24B4A;font-size:13px;margin-bottom:16px;min-height:18px;text-align:center}
+.pin-hint{font-size:12px;color:#aaa;margin-top:20px;text-align:center}
+.app-hidden{display:none}
 .topbar{background:#1D9E75;color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .topbar h1{font-size:16px;font-weight:700;letter-spacing:.01em}
 .nav{display:flex;overflow-x:auto;background:#fff;border-bottom:1px solid #e0e0e0;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:sticky;top:44px;z-index:99}
@@ -89,9 +108,48 @@ select:focus,input:focus{border-color:#1D9E75}
 </head>
 <body>
 
+<!-- PIN SCREEN -->
+<div id="pin-screen" class="pin-screen">
+  <div class="pin-logo">
+    <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 2-10 7"/></svg>
+  </div>
+  <div class="pin-title">Kebun Sawit</div>
+  <div class="pin-sub">Masukkan PIN untuk melanjutkan</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+    <div class="pin-dot" id="pd4"></div>
+    <div class="pin-dot" id="pd5"></div>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinInput('1')">1</button>
+    <button class="pin-btn" onclick="pinInput('2')">2</button>
+    <button class="pin-btn" onclick="pinInput('3')">3</button>
+    <button class="pin-btn" onclick="pinInput('4')">4</button>
+    <button class="pin-btn" onclick="pinInput('5')">5</button>
+    <button class="pin-btn" onclick="pinInput('6')">6</button>
+    <button class="pin-btn" onclick="pinInput('7')">7</button>
+    <button class="pin-btn" onclick="pinInput('8')">8</button>
+    <button class="pin-btn" onclick="pinInput('9')">9</button>
+    <button class="pin-btn empty"></button>
+    <button class="pin-btn" onclick="pinInput('0')">0</button>
+    <button class="pin-btn del" onclick="pinDelete()">&#9003;</button>
+  </div>
+  <div class="pin-hint">Lupa PIN? Hubungi admin</div>
+</div>
+
+<!-- APP (tersembunyi sampai PIN benar) -->
+<div id="app-main" class="app-hidden">
+
 <div class="topbar">
   <h1>Kebun Sawit</h1>
-  <div id="conn-status" class="online-badge"><span class="dot-offline" id="conn-dot"></span><span id="conn-txt">Menghubungkan...</span></div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div id="conn-status" class="online-badge"><span class="dot-offline" id="conn-dot"></span><span id="conn-txt">Menghubungkan...</span></div>
+    <button onclick="logout()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:20px;cursor:pointer">Kunci</button>
+  </div>
 </div>
 
 <div class="nav">
@@ -103,6 +161,7 @@ select:focus,input:focus{border-color:#1D9E75}
   <button class="nav-btn" onclick="switchTab('pruning',this)">Pruning</button>
   <button class="nav-btn" onclick="switchTab('racun',this)">Herbisida</button>
   <button class="nav-btn" onclick="switchTab('log',this)">Histori</button>
+  <button class="nav-btn" onclick="switchTab('modal',this)">Modal</button>
   <button class="nav-btn" onclick="switchTab('rekap',this)">Rekap</button>
 </div>
 
@@ -321,18 +380,73 @@ select:focus,input:focus{border-color:#1D9E75}
   <div id="list-log"><div class="loading">Memuat...</div></div>
 </div>
 
+<!-- MODAL -->
+<div id="p-modal" class="panel">
+  <div class="card">
+    <div class="card-title">Input biaya / modal</div>
+    <div class="form-group"><label>Lahan</label><select id="mod-lahan"><option value="">-- pilih --</option></select></div>
+    <div class="grid2">
+      <div class="form-group"><label>Kategori</label>
+        <select id="mod-kategori" onchange="updateJenisModal()">
+          <option value="Pupuk">Pupuk</option>
+          <option value="Herbisida">Herbisida</option>
+          <option value="Pruning">Pruning</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Jenis</label><select id="mod-jenis"></select></div>
+    </div>
+    <div class="form-group"><label>Tanggal</label><input type="date" id="mod-tanggal"></div>
+    <div class="grid2">
+      <div class="form-group"><label>Jumlah</label><input type="number" id="mod-jumlah" placeholder="cth: 50" min="0" step="0.5"></div>
+      <div class="form-group"><label>Satuan</label><input type="text" id="mod-satuan" placeholder="cth: kg, liter, HOK"></div>
+    </div>
+    <div class="grid2">
+      <div class="form-group"><label>Harga satuan (Rp)</label><input type="number" id="mod-harga" placeholder="cth: 5000" min="0"></div>
+      <div class="form-group"><label>Total (otomatis)</label><input type="number" id="mod-total" placeholder="0" readonly style="background:#f5f5f0"></div>
+    </div>
+    <div class="form-group"><label>Keterangan</label><input type="text" id="mod-ket" placeholder="cth: beli di kios Pak Budi"></div>
+    <button class="btn btn-green" onclick="simpanModal()">Simpan modal</button>
+  </div>
+
+  <div style="overflow-x:auto;white-space:nowrap;margin-bottom:10px">
+    <button class="btn-sm btn-gray" style="margin-right:6px;display:inline-block" onclick="filterModal('','')">Semua</button>
+    <button class="btn-sm" style="margin-right:6px;display:inline-block;background:#e1f5ee;color:#085041;border:none;border-radius:7px;padding:7px 14px;font-size:13px" onclick="filterModal('','Pupuk')">Pupuk</button>
+    <button class="btn-sm" style="margin-right:6px;display:inline-block;background:#faeeda;color:#633806;border:none;border-radius:7px;padding:7px 14px;font-size:13px" onclick="filterModal('','Herbisida')">Herbisida</button>
+    <button class="btn-sm" style="margin-right:6px;display:inline-block;background:#e6f1fb;color:#0C447C;border:none;border-radius:7px;padding:7px 14px;font-size:13px" onclick="filterModal('','Pruning')">Pruning</button>
+  </div>
+
+  <div id="modal-summary" class="realisasi-sum" style="display:none">
+    <div class="grid3">
+      <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#E24B4A" id="ms-total">0</div><div style="font-size:11px;color:#666">Total modal</div></div>
+      <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#1D9E75" id="ms-pupuk">0</div><div style="font-size:11px;color:#666">Pupuk</div></div>
+      <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#BA7517" id="ms-herbisida">0</div><div style="font-size:11px;color:#666">Herbisida</div></div>
+    </div>
+    <div style="margin-top:10px;text-align:center"><div style="font-size:18px;font-weight:700;color:#185FA5" id="ms-pruning">0</div><div style="font-size:11px;color:#666">Pruning</div></div>
+  </div>
+
+  <div class="section-lbl">Riwayat pengeluaran</div>
+  <div id="list-modal"><div class="loading">Memuat...</div></div>
+</div>
+
 <!-- REKAP -->
 <div id="p-rekap" class="panel">
-  <div class="section-lbl">Ringkasan produksi & biaya</div>
+  <div class="section-lbl">Untung / Rugi per lahan</div>
+  <div id="rekap-ur"><div class="loading">Memuat...</div></div>
+
+  <div class="section-lbl" style="margin-top:16px">Ringkasan produksi</div>
   <div class="metric-row-2">
     <div class="metric"><div class="metric-val" id="rek-kg-total" style="font-size:18px">-</div><div class="metric-lbl">Total kg dipanen</div></div>
     <div class="metric"><div class="metric-val" id="rek-income-total" style="font-size:18px;color:#E67E22">-</div><div class="metric-lbl">Total pendapatan</div></div>
+  </div>
+  <div class="metric-row-2">
+    <div class="metric"><div class="metric-val" id="rek-modal-total" style="font-size:18px;color:#E24B4A">-</div><div class="metric-lbl">Total modal</div></div>
+    <div class="metric" id="rek-ur-card"><div class="metric-val" id="rek-ur-total" style="font-size:18px">-</div><div class="metric-lbl" id="rek-ur-lbl">Untung/Rugi</div></div>
   </div>
   <div id="rekap-isi"><div class="loading">Memuat...</div></div>
   <button class="btn btn-blue" onclick="exportCSV()" style="margin-top:8px">Export semua data ke CSV</button>
 </div>
 
-</div>
+</div><!-- end app-main -->
 <div class="toast" id="toast"></div>
 
 <script>
@@ -340,14 +454,80 @@ const SUPABASE_URL='https://suguhkuaoxszaewbicya.supabase.co';
 const SUPABASE_KEY='sb_publishable_9KvrV7Y8XXF_KBPBaqME3Q_CJSfnhMU';
 const H={'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
 
+/* ===== PIN SYSTEM ===== */
+const CORRECT_PIN='123321'; // GANTI PIN DI SINI
+let pinCurrent='';
+let pinLocked=false;
+let pinAttempts=0;
+
+function pinInput(num){
+  if(pinLocked)return;
+  if(pinCurrent.length>=6)return;
+  pinCurrent+=num;
+  updatePinDots();
+  if(pinCurrent.length===6)setTimeout(checkPin,100);
+}
+
+function pinDelete(){
+  if(pinLocked)return;
+  pinCurrent=pinCurrent.slice(0,-1);
+  updatePinDots();
+  document.getElementById('pin-error').textContent='';
+}
+
+function updatePinDots(state=''){
+  for(let i=0;i<6;i++){
+    const d=document.getElementById('pd'+i);
+    d.className='pin-dot';
+    if(state==='error')d.classList.add('error');
+    else if(i<pinCurrent.length)d.classList.add('filled');
+  }
+}
+
+function checkPin(){
+  if(pinCurrent===CORRECT_PIN){
+    sessionStorage.setItem('sawit_auth','1');
+    document.getElementById('pin-screen').style.display='none';
+    document.getElementById('app-main').classList.remove('app-hidden');
+    initSelects();loadAll();
+  } else {
+    pinAttempts++;
+    updatePinDots('error');
+    const err=document.getElementById('pin-error');
+    if(pinAttempts>=5){
+      pinLocked=true;
+      err.textContent='Terlalu banyak percobaan. Tunggu 30 detik.';
+      setTimeout(()=>{pinLocked=false;pinAttempts=0;err.textContent='';pinCurrent='';updatePinDots();},30000);
+    } else {
+      err.textContent='PIN salah. Sisa percobaan: '+(5-pinAttempts);
+    }
+    setTimeout(()=>{pinCurrent='';updatePinDots();},600);
+  }
+}
+
+function logout(){
+  sessionStorage.removeItem('sawit_auth');
+  document.getElementById('app-main').classList.add('app-hidden');
+  document.getElementById('pin-screen').style.display='flex';
+  pinCurrent='';pinAttempts=0;pinLocked=false;
+  updatePinDots();
+  document.getElementById('pin-error').textContent='';
+}
+
+// Cek kalau sudah login di session ini
+if(sessionStorage.getItem('sawit_auth')==='1'){
+  document.getElementById('pin-screen').style.display='none';
+  document.getElementById('app-main').classList.remove('app-hidden');
+}
+
 let LAHAN_NAMES=['Yurni','Dekol','Torus','Ujang','Padang','Telago','SD TLD','Roli','Quari ulu'];
 const MN=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const MNF=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const COLORS=['#1D9E75','#185FA5','#BA7517','#D85A30','#D4537E','#534AB7','#639922','#888780'];
 const LOG_COLORS={'Pemupukan':'#1D9E75','Panen':'#E67E22','Pruning':'#185FA5','Semprot herbisida':'#BA7517','Pengendalian hama':'#D85A30','Perbaikan jalan':'#888780','Sensus pokok':'#534AB7','Lainnya':'#888'};
 
-let cache={lahan:[],pupuk:[],panen:[],pruning:[],racun:[],realisasi:[],log:[]};
-let filterReaLahan='', filterLogLahan='';
+let cache={lahan:[],pupuk:[],panen:[],pruning:[],racun:[],realisasi:[],log:[],modal:[]};
+let filterReaLahan='', filterLogLahan='', filterModalLahan='', filterModalKat='';
 
 async function sb(table,method='GET',body=null,params=''){
   const url=SUPABASE_URL+'/rest/v1/'+table+(params?'?'+params:'');
@@ -382,6 +562,7 @@ function initSelects(){
   });
   document.getElementById('rea-tanggal').value=todayStr();
   document.getElementById('log-tanggal').value=todayStr();
+  document.getElementById('mod-tanggal').value=todayStr();
 }
 
 function switchTab(name,btn){
@@ -389,13 +570,13 @@ function switchTab(name,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('p-'+name).classList.add('active');
-  const renders={dashboard:renderDashboard,lahan:renderLahan,pupuk:()=>{renderPupuk();renderPupukCal();},panen:renderPanen,realisasi:renderRealisasi,pruning:renderPruning,racun:renderRacun,log:renderLog,rekap:renderRekap};
+  const renders={dashboard:renderDashboard,lahan:renderLahan,pupuk:()=>{renderPupuk();renderPupukCal();},panen:renderPanen,realisasi:renderRealisasi,pruning:renderPruning,racun:renderRacun,log:renderLog,modal:renderModal,rekap:renderRekap};
   if(renders[name])renders[name]();
 }
 
 async function loadAll(){
   try{
-    const [lahan,pupuk,panen,pruning,racun,realisasi,log]=await Promise.all([
+    const [lahan,pupuk,panen,pruning,racun,realisasi,log,modal]=await Promise.all([
       sb('lahan','GET',null,'order=nama'),
       sb('pupuk','GET',null,'order=created_at'),
       sb('panen','GET',null,'order=created_at'),
@@ -403,15 +584,16 @@ async function loadAll(){
       sb('racun','GET',null,'order=created_at'),
       sb('realisasi_panen','GET',null,'order=tanggal.desc'),
       sb('log_aktivitas','GET',null,'order=tanggal.desc'),
+      sb('modal','GET',null,'order=tanggal.desc'),
     ]);
-    cache={lahan,pupuk,panen,pruning,racun,realisasi,log};
+    cache={lahan,pupuk,panen,pruning,racun,realisasi,log,modal};
     setConn(true);refreshLahanSelects();renderDashboard();
   }catch(e){setConn(false);console.error(e);}
 }
 
 function refreshLahanSelects(){
   LAHAN_NAMES=cache.lahan.map(l=>l.nama);
-  const selIds=['l-nama','pup-lahan','pan-lahan','pru-lahan','rac-lahan','rea-lahan','log-lahan'];
+  const selIds=['l-nama','pup-lahan','pan-lahan','pru-lahan','rac-lahan','rea-lahan','log-lahan','mod-lahan'];
   selIds.forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const cur=el.value;
@@ -795,44 +977,154 @@ async function hapusItem(table,id){
   try{
     await sb(table,'DELETE',null,'id=eq.'+id);
     await loadAll();
-    const renders={pupuk:()=>{renderPupuk();renderPupukCal();},panen:renderPanen,pruning:renderPruning,racun:renderRacun,realisasi_panen:renderRealisasi,log_aktivitas:renderLog};
+    const renders={pupuk:()=>{renderPupuk();renderPupukCal();},panen:renderPanen,pruning:renderPruning,racun:renderRacun,realisasi_panen:renderRealisasi,log_aktivitas:renderLog,modal:renderModal};
     if(renders[table])renders[table]();
     showToast('Data dihapus');
   }catch(e){showToast('Gagal hapus');}
+}
+
+/* ===== MODAL ===== */
+const JENIS_MODAL={
+  Pupuk:['Urea (N)','MOP/KCl (K)','TSP/SP-36 (P)','Dolomit (Mg)','Borate (B)','NPK Majemuk','Kiserit','PKSC'],
+  Herbisida:['Glifosat (Round-up)','Parakuat (Gramoxone)','Metil Metsulfuron','Fluroksipir','2,4-D Amin','Triklopir','Campuran'],
+  Pruning:['Upah sanitasi','Upah songgo 2','Upah songgo 1','Upah kastrasi','Upah umum']
+};
+
+function updateJenisModal(){
+  const kat=document.getElementById('mod-kategori').value;
+  const sel=document.getElementById('mod-jenis');
+  sel.innerHTML='';
+  (JENIS_MODAL[kat]||[]).forEach(j=>sel.innerHTML+=`<option>${j}</option>`);
+  const satuan=kat==='Pupuk'?'kg':kat==='Herbisida'?'liter':'HOK';
+  document.getElementById('mod-satuan').value=satuan;
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  updateJenisModal();
+  ['mod-jumlah','mod-harga'].forEach(id=>{
+    document.getElementById(id).addEventListener('input',()=>{
+      const j=parseFloat(document.getElementById('mod-jumlah').value)||0;
+      const h=parseInt(document.getElementById('mod-harga').value)||0;
+      document.getElementById('mod-total').value=Math.round(j*h);
+    });
+  });
+});
+
+async function simpanModal(){
+  const lahan=document.getElementById('mod-lahan').value;
+  if(!lahan){showToast('Pilih lahan');return;}
+  const tanggal=document.getElementById('mod-tanggal').value;
+  if(!tanggal){showToast('Isi tanggal');return;}
+  const jumlah=parseFloat(document.getElementById('mod-jumlah').value)||0;
+  const harga=parseInt(document.getElementById('mod-harga').value)||0;
+  const total=Math.round(jumlah*harga);
+  const data={lahan,kategori:document.getElementById('mod-kategori').value,jenis:document.getElementById('mod-jenis').value,tanggal,jumlah,satuan:document.getElementById('mod-satuan').value,harga_satuan:harga,total,keterangan:document.getElementById('mod-ket').value};
+  try{
+    await sb('modal','POST',data);
+    await loadAll();renderModal();showToast('Modal disimpan');
+    ['mod-jumlah','mod-harga','mod-total','mod-ket'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('mod-tanggal').value=todayStr();
+  }catch(e){showToast('Gagal: '+e.message);}
+}
+
+function filterModal(lahan,kat){
+  filterModalLahan=lahan;filterModalKat=kat;renderModal();
+}
+
+function renderModal(){
+  let data=cache.modal;
+  if(filterModalLahan)data=data.filter(m=>m.lahan===filterModalLahan);
+  if(filterModalKat)data=data.filter(m=>m.kategori===filterModalKat);
+  const totPupuk=cache.modal.filter(m=>m.kategori==='Pupuk').reduce((a,m)=>a+(m.total||0),0);
+  const totHerb=cache.modal.filter(m=>m.kategori==='Herbisida').reduce((a,m)=>a+(m.total||0),0);
+  const totPruning=cache.modal.filter(m=>m.kategori==='Pruning').reduce((a,m)=>a+(m.total||0),0);
+  const totAll=totPupuk+totHerb+totPruning;
+  const sum=document.getElementById('modal-summary');
+  if(cache.modal.length){
+    sum.style.display='block';
+    document.getElementById('ms-total').textContent=fmtK(totAll);
+    document.getElementById('ms-pupuk').textContent=fmtK(totPupuk);
+    document.getElementById('ms-herbisida').textContent=fmtK(totHerb);
+    document.getElementById('ms-pruning').textContent=fmtK(totPruning);
+  } else {sum.style.display='none';}
+  if(!data.length){document.getElementById('list-modal').innerHTML='<div class="empty">Belum ada data modal</div>';return;}
+  const katBadge={Pupuk:'b-green',Herbisida:'b-amber',Pruning:'b-blue'};
+  document.getElementById('list-modal').innerHTML=data.map(m=>`<div class="item-card">
+    <div class="item-title">${m.lahan} <span class="badge ${katBadge[m.kategori]||'b-gray'}">${m.kategori}</span></div>
+    <div class="item-sub">${m.jenis} &nbsp;|&nbsp; ${m.tanggal}</div>
+    <div class="item-sub">${m.jumlah} ${m.satuan||''} x ${fmtRp(m.harga_satuan||0)} = <b style="color:#E24B4A">${fmtRp(m.total||0)}</b></div>
+    ${m.keterangan?`<div class="item-sub">${m.keterangan}</div>`:''}
+    <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('modal','${m.id}')">Hapus</button></div>
+  </div>`).join('');
 }
 
 /* ===== REKAP ===== */
 function renderRekap(){
   const totalKgAll=cache.realisasi.reduce((a,r)=>a+(r.kg_aktual||0),0);
   const totalIncomeAll=cache.realisasi.reduce((a,r)=>a+(r.pendapatan||0),0);
+  const totalModalAll=cache.modal.reduce((a,m)=>a+(m.total||0),0);
+  const ur=totalIncomeAll-totalModalAll;
+
   document.getElementById('rek-kg-total').textContent=fmt(totalKgAll)+' kg';
   document.getElementById('rek-income-total').textContent=fmtK(totalIncomeAll);
-  if(!cache.lahan.length){document.getElementById('rekap-isi').innerHTML='<div class="empty">Isi data lahan terlebih dahulu</div>';return;}
-  let totBiaya=0,totIncome=0;
+  document.getElementById('rek-modal-total').textContent=fmtK(totalModalAll);
+  document.getElementById('rek-ur-total').textContent=fmtK(Math.abs(ur));
+  document.getElementById('rek-ur-lbl').textContent=ur>=0?'UNTUNG':'RUGI';
+  document.getElementById('rek-ur-total').style.color=ur>=0?'#1D9E75':'#E24B4A';
+
+  if(!cache.lahan.length){document.getElementById('rekap-isi').innerHTML='<div class="empty">Isi data lahan terlebih dahulu</div>';document.getElementById('rekap-ur').innerHTML='<div class="empty">Isi data lahan terlebih dahulu</div>';return;}
+
+  // Rekap untung/rugi per lahan
+  const urCards=cache.lahan.map(d=>{
+    const income=cache.realisasi.filter(r=>r.lahan===d.nama).reduce((a,r)=>a+(r.pendapatan||0),0);
+    const modalPupuk=cache.modal.filter(m=>m.lahan===d.nama&&m.kategori==='Pupuk').reduce((a,m)=>a+(m.total||0),0);
+    const modalHerb=cache.modal.filter(m=>m.lahan===d.nama&&m.kategori==='Herbisida').reduce((a,m)=>a+(m.total||0),0);
+    const modalPruning=cache.modal.filter(m=>m.lahan===d.nama&&m.kategori==='Pruning').reduce((a,m)=>a+(m.total||0),0);
+    const totalModal=modalPupuk+modalHerb+modalPruning;
+    const selisih=income-totalModal;
+    const untung=selisih>=0;
+    return `<div class="rekap-card">
+      <div class="rekap-head" style="display:flex;justify-content:space-between;align-items:center">
+        <span>${d.nama}</span>
+        <span style="font-size:13px;font-weight:700;color:${untung?'#1D9E75':'#E24B4A'}">${untung?'UNTUNG':'RUGI'} ${fmtK(Math.abs(selisih))}</span>
+      </div>
+      <div class="rekap-body">
+        <div class="info-row"><span style="color:#666">Pendapatan aktual</span><span style="color:#E67E22;font-weight:600">${fmtK(income)}</span></div>
+        <div class="info-row" style="padding:4px 0;border:none"><span style="color:#888;font-size:12px">Modal pupuk</span><span style="color:#888;font-size:12px">${fmtK(modalPupuk)}</span></div>
+        <div class="info-row" style="padding:4px 0;border:none"><span style="color:#888;font-size:12px">Modal herbisida</span><span style="color:#888;font-size:12px">${fmtK(modalHerb)}</span></div>
+        <div class="info-row" style="padding:4px 0"><span style="color:#888;font-size:12px">Modal pruning</span><span style="color:#888;font-size:12px">${fmtK(modalPruning)}</span></div>
+        <div class="info-row"><span style="font-weight:600">Total modal</span><span style="font-weight:600;color:#E24B4A">${fmtK(totalModal)}</span></div>
+        <div class="info-row" style="border:none;padding-top:8px"><span style="font-weight:700;font-size:14px">${untung?'Keuntungan':'Kerugian'}</span><span style="font-weight:700;font-size:14px;color:${untung?'#1D9E75':'#E24B4A'}">${fmtK(Math.abs(selisih))}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Total keseluruhan
+  const urAll=`<div class="item-card" style="background:${ur>=0?'#f0faf5':'#fff5f5'};border-color:${ur>=0?'#1D9E75':'#E24B4A'}">
+    <div class="info-row"><span style="font-weight:600">Total pendapatan</span><span style="color:#E67E22;font-weight:700">${fmtK(totalIncomeAll)}</span></div>
+    <div class="info-row"><span style="font-weight:600">Total modal</span><span style="color:#E24B4A;font-weight:700">${fmtK(totalModalAll)}</span></div>
+    <div class="info-row" style="border:none"><span style="font-weight:700;font-size:15px">Total ${ur>=0?'UNTUNG':'RUGI'}</span><span style="font-weight:700;font-size:15px;color:${ur>=0?'#1D9E75':'#E24B4A'}">${fmtK(Math.abs(ur))}</span></div>
+  </div>`;
+
+  document.getElementById('rekap-ur').innerHTML=urAll+urCards;
+
+  // Rekap detail per lahan
   const cards=cache.lahan.map(d=>{
-    const biayaPruning=cache.pruning.filter(p=>p.lahan===d.nama).reduce((a,p)=>a+(p.biaya||0),0);
-    const biayaRacun=cache.racun.filter(r=>r.lahan===d.nama).reduce((a,r)=>a+(r.biaya_tahunan||0),0);
-    const totalBiaya=biayaPruning+biayaRacun;
-    const incomeEst=cache.panen.filter(p=>p.lahan===d.nama).reduce((a,p)=>a+(p.income||0),0);
-    const incomeAktual=cache.realisasi.filter(r=>r.lahan===d.nama).reduce((a,r)=>a+(r.pendapatan||0),0);
     const rotasiCount=cache.realisasi.filter(r=>r.lahan===d.nama).length;
-    totBiaya+=totalBiaya;totIncome+=incomeAktual;
+    const incomeAktual=cache.realisasi.filter(r=>r.lahan===d.nama).reduce((a,r)=>a+(r.pendapatan||0),0);
+    const incomeEst=cache.panen.filter(p=>p.lahan===d.nama).reduce((a,p)=>a+(p.income||0),0);
+    const modalTotal=cache.modal.filter(m=>m.lahan===d.nama).reduce((a,m)=>a+(m.total||0),0);
     return `<div class="rekap-card">
       <div class="rekap-head">${d.nama} <span style="font-weight:400;color:#666">${d.ha}ha / ${fmt(d.pokok||0)} pokok</span></div>
       <div class="rekap-body">
         <div class="info-row"><span style="color:#666">Realisasi panen</span><span>${rotasiCount}x rotasi</span></div>
         <div class="info-row"><span style="color:#666">Pendapatan aktual</span><span style="color:#E67E22;font-weight:600">${fmtK(incomeAktual)}</span></div>
         <div class="info-row"><span style="color:#666">Est. pendapatan/bln</span><span style="color:#1D9E75">${fmtK(incomeEst)}</span></div>
-        <div class="info-row"><span style="color:#666">Biaya pruning/thn</span><span>${fmtRp(biayaPruning)}</span></div>
-        <div class="info-row"><span style="color:#666">Biaya herbisida/thn</span><span>${fmtRp(biayaRacun)}</span></div>
-        <div class="info-row"><span style="font-weight:600">Total biaya/thn</span><span style="font-weight:600">${fmtRp(totalBiaya)}</span></div>
+        <div class="info-row"><span style="color:#666">Total modal aktual</span><span style="color:#E24B4A;font-weight:600">${fmtK(modalTotal)}</span></div>
       </div>
     </div>`;
   }).join('');
-  document.getElementById('rekap-isi').innerHTML=cards+`<div class="item-card" style="background:#f5f5f0">
-    <div class="info-row"><span style="font-weight:600">Total biaya/thn</span><span style="font-weight:600">${fmtRp(totBiaya)}</span></div>
-    <div class="info-row"><span style="font-weight:600;color:#E67E22">Total pendapatan aktual</span><span style="font-weight:600;color:#E67E22">${fmtK(totIncome)}</span></div>
-  </div>`;
+  document.getElementById('rekap-isi').innerHTML=`<div class="section-lbl" style="margin-top:8px">Detail per lahan</div>`+cards;
 }
 
 /* ===== EXPORT CSV ===== */
@@ -852,6 +1144,8 @@ function exportCSV(){
   cache.pruning.forEach(p=>csv+=`${p.lahan},${p.pokok},"${p.jenis}",${p.frek},${MNF[(p.bulan||1)-1]},${p.upah},${p.biaya}\n`);
   csv+='\n=== JADWAL HERBISIDA ===\nLahan,Ha,Herbisida,Area,Dosis L/ha,Frekuensi,Bulan Aplikasi,Upah/ha,Est Biaya/thn\n';
   cache.racun.forEach(r=>csv+=`${r.lahan},${r.ha},${r.jenis},${r.area},${r.dosis},${r.frek}x,"${r.bulan_aplikasi||''}",${r.upah},${r.biaya_tahunan}\n`);
+  csv+='\n=== MODAL / BIAYA AKTUAL ===\nLahan,Kategori,Jenis,Tanggal,Jumlah,Satuan,Harga Satuan,Total,Keterangan\n';
+  cache.modal.forEach(m=>csv+=`${m.lahan},${m.kategori},${m.jenis},${m.tanggal},${m.jumlah},${m.satuan||''},${m.harga_satuan||0},${m.total||0},"${m.keterangan||''}"\n`);
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -861,8 +1155,10 @@ function exportCSV(){
   showToast('File CSV berhasil didownload');
 }
 
-initSelects();
-loadAll();
+// Inisialisasi — hanya jalankan kalau sudah login
+if(sessionStorage.getItem('sawit_auth')==='1'){
+  initSelects();loadAll();
+}
 </script>
 </body>
 </html>
