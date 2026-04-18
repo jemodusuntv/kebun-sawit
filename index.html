@@ -281,7 +281,17 @@ select:focus,input:focus{border-color:#1D9E75}
       <div class="form-group"><label>Kondisi</label><select id="l-kondisi"><option>Baik</option><option>Sedang</option><option>Perlu perhatian</option></select></div>
       <div class="form-group"><label>Topografi</label><select id="l-topo"><option>Datar</option><option>Berbukit</option><option>Gambut</option></select></div>
     </div>
-    <div class="form-group"><label>Keterangan</label><input type="text" id="l-ket" placeholder="catatan tambahan"></div>
+    <div class="grid2">
+      <div class="form-group"><label>Rotasi panen (hari)</label>
+        <select id="l-rotasi">
+          <option value="7">7 hari</option>
+          <option value="10">10 hari</option>
+          <option value="14" selected>14 hari</option>
+          <option value="21">21 hari</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Keterangan</label><input type="text" id="l-ket" placeholder="catatan tambahan"></div>
+    </div>
     <button class="btn btn-green" onclick="simpanLahan()">Simpan data lahan</button>
   </div>
   <div class="section-lbl">Lahan terdaftar</div>
@@ -668,6 +678,7 @@ function isiFormLahan(nama){
   ['ha','pokok','tahun','jarak'].forEach(k=>document.getElementById('l-'+k).value=d[k]||'');
   document.getElementById('l-kondisi').value=d.kondisi||'Baik';
   document.getElementById('l-topo').value=d.topo||'Datar';
+  document.getElementById('l-rotasi').value=d.rotasi_panen||14;
   document.getElementById('l-ket').value=d.ket||'';
 }
 
@@ -676,7 +687,7 @@ async function simpanLahan(){
   const namaSelect=document.getElementById('l-nama').value;
   const nama=namaBaru||namaSelect;
   if(!nama){showToast('Pilih lahan atau ketik nama lahan baru');return;}
-  const data={nama,ha:parseFloat(document.getElementById('l-ha').value)||0,pokok:parseInt(document.getElementById('l-pokok').value)||0,tahun:parseInt(document.getElementById('l-tahun').value)||2015,jarak:parseFloat(document.getElementById('l-jarak').value)||9,kondisi:document.getElementById('l-kondisi').value,topo:document.getElementById('l-topo').value,ket:document.getElementById('l-ket').value};
+  const data={nama,ha:parseFloat(document.getElementById('l-ha').value)||0,pokok:parseInt(document.getElementById('l-pokok').value)||0,tahun:parseInt(document.getElementById('l-tahun').value)||2015,jarak:parseFloat(document.getElementById('l-jarak').value)||9,kondisi:document.getElementById('l-kondisi').value,topo:document.getElementById('l-topo').value,rotasi_panen:parseInt(document.getElementById('l-rotasi').value)||14,ket:document.getElementById('l-ket').value};
   try{
     const m=lahanMap();
     if(m[nama])await sb('lahan','PATCH',data,'nama=eq.'+encodeURIComponent(nama));
@@ -698,6 +709,7 @@ function renderLahan(){
     return `<div class="item-card">
       <div class="item-title">${d.nama} <span class="badge ${kb}">${d.kondisi||'-'}</span></div>
       <div class="item-sub">${d.ha||0} ha &nbsp;|&nbsp; ${fmt(d.pokok||0)} pokok &nbsp;|&nbsp; Tanam ${d.tahun||'-'} (${umur} thn) &nbsp;|&nbsp; ${d.topo||'-'}</div>
+      <div class="item-sub">Rotasi panen: <b>${d.rotasi_panen||14} hari</b></div>
       ${d.ket?`<div class="item-sub">${d.ket}</div>`:''}
       <div class="item-actions">
         <button class="btn-sm btn-gray" onclick="document.getElementById('l-nama').value='${d.nama}';isiFormLahan('${d.nama}');window.scrollTo(0,0)">Edit</button>
@@ -735,7 +747,25 @@ async function simpanRealisasi(){
     } else {
       await sb('realisasi_panen','POST',data);
       await sb('log_aktivitas','POST',{lahan,jenis:'Panen',tanggal,keterangan:`${kg} kg — kotor: ${fmtK(pendapatan)} — bersih: ${fmtK(pendapatan_bersih)}`,pelaksana:'',biaya:total_upah});
-      showToast('Hasil panen dicatat');
+
+      // Auto-jadwal panen berikutnya berdasarkan rotasi lahan
+      const m=lahanMap();
+      const dataLahan=m[lahan];
+      const rotasi=dataLahan?parseInt(dataLahan.rotasi_panen)||14:14;
+      const nextDate=new Date(tanggal+'T00:00:00');
+      nextDate.setDate(nextDate.getDate()+rotasi);
+      const nextStr=nextDate.toISOString().slice(0,10);
+
+      // Hapus jadwal panen pending lama untuk lahan ini agar tidak numpuk
+      const jadwalPanenLama=cache.jadwal.filter(j=>j.lahan===lahan&&j.jenis==='Panen'&&j.status==='pending');
+      for(const j of jadwalPanenLama){
+        await sb('jadwal_aktif','DELETE',null,'id=eq.'+j.id);
+      }
+
+      // Buat jadwal panen berikutnya
+      await sb('jadwal_aktif','POST',{lahan,jenis:'Panen',detail:'Jadwal panen rotasi '+rotasi+' hari',tanggal_due:nextStr,interval_bulan:null,status:'pending',sumber:'auto'});
+
+      showToast('Panen dicatat — jadwal berikutnya: '+nextStr);
     }
     await loadAll();renderRealisasi();
     batalEditRealisasi();
@@ -789,12 +819,17 @@ function renderRealisasi(){
   document.getElementById('list-realisasi').innerHTML=data.map(r=>{
     const bersih=r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0;
     const adaUpah=(r.upah_panen||0)>0;
+    // Cari jadwal panen berikutnya untuk lahan ini
+    const jadwalBerikutnya=cache.jadwal.find(j=>j.lahan===r.lahan&&j.jenis==='Panen'&&j.status==='pending');
+    const m=lahanMap();const dl=m[r.lahan];
+    const rotasi=dl?dl.rotasi_panen||14:14;
     return `<div class="item-card">
       <div class="item-title">${r.lahan} <span style="font-weight:400;color:#888;font-size:13px">${r.tanggal}</span></div>
-      <div class="item-sub"><b>${fmt(r.kg_aktual||0)} kg</b> &nbsp;|&nbsp; ${fmtRp(r.harga_aktual||0)}/kg</div>
+      <div class="item-sub"><b>${fmt(r.kg_aktual||0)} kg</b> &nbsp;|&nbsp; ${fmtRp(r.harga_aktual||0)}/kg &nbsp;|&nbsp; Rotasi: ${rotasi} hr</div>
       ${adaUpah?`<div class="item-sub">Upah: ${fmtRp(r.upah_panen||0)}/kg &nbsp;|&nbsp; Total upah: <span style="color:#E24B4A">${fmtK(r.total_upah||0)}</span></div>`:''}
       <div class="item-sub">Kotor: <span style="color:#E67E22;font-weight:600">${fmtK(r.pendapatan||0)}</span>${adaUpah?` &nbsp;|&nbsp; Bersih: <span style="color:#1D9E75;font-weight:700">${fmtK(bersih)}</span>`:''}
       </div>
+      ${jadwalBerikutnya?`<div class="item-sub" style="color:#185FA5;font-size:12px">Panen berikutnya: <b>${jadwalBerikutnya.tanggal_due}</b></div>`:''}
       ${r.keterangan?`<div class="item-sub">${r.keterangan}</div>`:''}
       <div class="item-actions">
         <button class="btn-sm btn-gray" onclick="editRealisasi('${r.id}')">Edit</button>
