@@ -156,7 +156,6 @@ select:focus,input:focus{border-color:#1D9E75}
   <button class="nav-btn active" onclick="switchTab('dashboard',this)">Dashboard</button>
   <button class="nav-btn" onclick="switchTab('lahan',this)">Lahan</button>
   <button class="nav-btn" onclick="switchTab('pupuk',this)">Pupuk</button>
-  <button class="nav-btn" onclick="switchTab('panen',this)">Panen</button>
   <button class="nav-btn" onclick="switchTab('realisasi',this)">Realisasi</button>
   <button class="nav-btn" onclick="switchTab('pruning',this)">Pruning</button>
   <button class="nav-btn" onclick="switchTab('racun',this)">Herbisida</button>
@@ -242,31 +241,6 @@ select:focus,input:focus{border-color:#1D9E75}
   <div class="card"><div id="pup-cal"><div class="loading">Memuat...</div></div></div>
   <div class="section-lbl">Daftar jadwal</div>
   <div id="list-pupuk"><div class="loading">Memuat...</div></div>
-</div>
-
-<!-- PANEN (Jadwal Estimasi) -->
-<div id="p-panen" class="panel">
-  <div class="card">
-    <div class="card-title">Jadwal panen (estimasi)</div>
-    <div class="form-group"><label>Lahan</label><select id="pan-lahan"><option value="">-- pilih --</option></select></div>
-    <div class="grid2">
-      <div class="form-group"><label>Rotasi (hari)</label><select id="pan-rotasi"><option value="7">7 hari</option><option value="10">10 hari</option><option value="14" selected>14 hari</option><option value="21">21 hari</option></select></div>
-      <div class="form-group"><label>BJR (kg/jjg)</label><input type="number" id="pan-bjr" placeholder="15" step="0.5" min="1"></div>
-    </div>
-    <div class="grid2">
-      <div class="form-group"><label>AKP (%)</label><input type="number" id="pan-akp" placeholder="70" min="1" max="100"></div>
-      <div class="form-group"><label>Harga TBS (Rp/kg)</label><input type="number" id="pan-harga" placeholder="2200"></div>
-    </div>
-    <div class="form-group"><label>Bulan mulai</label><select id="pan-mulai"><option value="">--</option></select></div>
-    <button class="btn btn-green" onclick="simpanPanen()">Simpan jadwal panen</button>
-  </div>
-  <div class="metric-row">
-    <div class="metric"><div class="metric-val" id="pan-tot-pokok">-</div><div class="metric-lbl">Pokok dipanen</div></div>
-    <div class="metric"><div class="metric-val" id="pan-tot-kg">-</div><div class="metric-lbl">kg/rotasi</div></div>
-    <div class="metric"><div class="metric-val" id="pan-tot-income">-</div><div class="metric-lbl">Est. Rp/bln</div></div>
-  </div>
-  <div class="section-lbl">Daftar jadwal panen</div>
-  <div id="list-panen"><div class="loading">Memuat...</div></div>
 </div>
 
 <!-- REALISASI PANEN -->
@@ -534,7 +508,7 @@ const MNF=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','S
 const COLORS=['#1D9E75','#185FA5','#BA7517','#D85A30','#D4537E','#534AB7','#639922','#888780'];
 const LOG_COLORS={'Pemupukan':'#1D9E75','Panen':'#E67E22','Pruning':'#185FA5','Semprot herbisida':'#BA7517','Pengendalian hama':'#D85A30','Perbaikan jalan':'#888780','Sensus pokok':'#534AB7','Lainnya':'#888'};
 
-let cache={lahan:[],pupuk:[],panen:[],pruning:[],racun:[],realisasi:[],log:[],modal:[]};
+let cache={lahan:[],pupuk:[],pruning:[],racun:[],realisasi:[],log:[],modal:[]};
 let filterReaLahan='', filterLogLahan='', filterModalLahan='', filterModalKat='';
 
 async function sb(table,method='GET',body=null,params=''){
@@ -563,7 +537,7 @@ function setConn(ok){
 }
 
 function initSelects(){
-  ['pup-bln1','pup-bln2','pru-bulan','pan-mulai','rac-mulai'].forEach(id=>{
+  ['pup-bln1','pup-bln2','pru-bulan','rac-mulai'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     el.innerHTML='<option value="">--</option>';
     MNF.forEach((m,i)=>el.innerHTML+=`<option value="${i+1}">${m}</option>`);
@@ -578,30 +552,29 @@ function switchTab(name,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('p-'+name).classList.add('active');
-  const renders={dashboard:renderDashboard,lahan:renderLahan,pupuk:()=>{renderPupuk();renderPupukCal();},panen:renderPanen,realisasi:renderRealisasi,pruning:renderPruning,racun:renderRacun,log:renderLog,modal:renderModal,rekap:renderRekap};
+  const renders={dashboard:renderDashboard,lahan:renderLahan,pupuk:()=>{renderPupuk();renderPupukCal();},realisasi:renderRealisasi,pruning:renderPruning,racun:renderRacun,log:renderLog,modal:renderModal,rekap:renderRekap};
   if(renders[name])renders[name]();
 }
 
 async function loadAll(){
   try{
-    const [lahan,pupuk,panen,pruning,racun,realisasi,log,modal]=await Promise.all([
+    const [lahan,pupuk,pruning,racun,realisasi,log,modal]=await Promise.all([
       sb('lahan','GET',null,'order=nama'),
       sb('pupuk','GET',null,'order=created_at'),
-      sb('panen','GET',null,'order=created_at'),
       sb('pruning','GET',null,'order=created_at'),
       sb('racun','GET',null,'order=created_at'),
       sb('realisasi_panen','GET',null,'order=tanggal.desc'),
       sb('log_aktivitas','GET',null,'order=tanggal.desc'),
       sb('modal','GET',null,'order=tanggal.desc'),
     ]);
-    cache={lahan,pupuk,panen,pruning,racun,realisasi,log,modal};
+    cache={lahan,pupuk,pruning,racun,realisasi,log,modal};
     setConn(true);refreshLahanSelects();renderDashboard();
   }catch(e){setConn(false);console.error(e);}
 }
 
 function refreshLahanSelects(){
   LAHAN_NAMES=cache.lahan.map(l=>l.nama);
-  const selIds=['l-nama','pup-lahan','pan-lahan','pru-lahan','rac-lahan','rea-lahan','log-lahan','mod-lahan'];
+  const selIds=['l-nama','pup-lahan','pru-lahan','rac-lahan','rea-lahan','log-lahan','mod-lahan'];
   selIds.forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const cur=el.value;
@@ -645,21 +618,8 @@ function getJadwalMingguIni(){
     }
   });
 
-  const panen7hari=cache.realisasi.filter(r=>{
-    const d=parseDate(r.tanggal);return d>=monday&&d<=sunday;
-  });
-  cache.panen.forEach(p=>{
-    const rotasi=p.rotasi||14;
-    const panenLahan=cache.realisasi.filter(r=>r.lahan===p.lahan);
-    if(panenLahan.length>0){
-      const last=panenLahan[0];
-      const lastDate=parseDate(last.tanggal);
-      const nextDate=new Date(lastDate);nextDate.setDate(lastDate.getDate()+rotasi);
-      if(nextDate>=monday&&nextDate<=sunday){
-        alerts.push({tipe:'Panen',lahan:p.lahan,detail:'Jadwal rotasi '+rotasi+' hari — '+nextDate.toLocaleDateString('id-ID'),urgensi:'merah'});
-      }
-    }
-  });
+
+
   return alerts;
 }
 
@@ -804,52 +764,6 @@ function renderPupukCal(){
   html+='</div>';
   const legend=LAHAN_NAMES.filter(n=>cache.pupuk.some(p=>p.lahan===n)).map(n=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#666;margin-right:8px"><span style="width:8px;height:8px;border-radius:50%;background:${COLORS[LAHAN_NAMES.indexOf(n)%COLORS.length]};flex-shrink:0"></span>${n}</span>`).join('');
   document.getElementById('pup-cal').innerHTML=`<div style="margin-bottom:8px">${legend}</div>`+html;
-}
-
-/* ===== PANEN ===== */
-async function simpanPanen(){
-  const lahan=document.getElementById('pan-lahan').value;
-  if(!lahan){showToast('Pilih lahan');return;}
-  const m=lahanMap();const d=m[lahan];
-  const pokok=d?d.pokok:0;
-  const bjr=parseFloat(document.getElementById('pan-bjr').value)||15;
-  const akp=parseFloat(document.getElementById('pan-akp').value)||70;
-  const rotasi=parseInt(document.getElementById('pan-rotasi').value)||14;
-  const harga=parseInt(document.getElementById('pan-harga').value)||0;
-  const pokok_panen=Math.round(pokok*(akp/100));
-  const kg_per_rotasi=Math.round(pokok_panen*bjr);
-  const kg_per_bulan=Math.round(kg_per_rotasi*(30/rotasi));
-  const data={lahan,pokok,bjr,akp,rotasi,harga,pokok_panen,kg_per_rotasi,kg_per_bulan,income:kg_per_bulan*harga,mulai:parseInt(document.getElementById('pan-mulai').value)||1};
-  try{await sb('panen','POST',data);await loadAll();renderPanen();showToast('Jadwal panen disimpan');}
-  catch(e){showToast('Gagal simpan');}
-}
-
-function renderPanen(){
-  const totPokok=cache.panen.reduce((a,p)=>a+(p.pokok_panen||0),0);
-  const totKg=cache.panen.reduce((a,p)=>a+(p.kg_per_rotasi||0),0);
-  const totIncome=cache.panen.reduce((a,p)=>a+(p.income||0),0);
-  document.getElementById('pan-tot-pokok').textContent=cache.panen.length?fmt(totPokok):'-';
-  document.getElementById('pan-tot-kg').textContent=cache.panen.length?fmt(totKg)+' kg':'-';
-  document.getElementById('pan-tot-income').textContent=cache.panen.length?fmtK(totIncome):'-';
-  if(!cache.panen.length){document.getElementById('list-panen').innerHTML='<div class="empty">Belum ada jadwal</div>';return;}
-  document.getElementById('list-panen').innerHTML=cache.panen.map(p=>{
-    const panenList=cache.realisasi.filter(r=>r.lahan===p.lahan);
-    const lastPanen=panenList[0];
-    const nextInfo=lastPanen?`Panen terakhir: ${lastPanen.tanggal} | Next: ${nextPanenDate(lastPanen.tanggal,p.rotasi)}`:'Belum ada realisasi';
-    return `<div class="item-card">
-      <div class="item-title">${p.lahan}</div>
-      <div class="item-sub">Rotasi: ${p.rotasi} hr &nbsp;|&nbsp; BJR: ${p.bjr} kg &nbsp;|&nbsp; AKP: ${p.akp}% &nbsp;|&nbsp; Mulai: ${MNF[(p.mulai||1)-1]}</div>
-      <div class="item-sub">Est. ${fmt(p.kg_per_rotasi||0)} kg/rotasi &nbsp;|&nbsp; ${fmtRp(p.harga||0)}/kg</div>
-      <div class="item-sub" style="color:#1D9E75;font-weight:600">Est. ${fmtK(p.income||0)}/bln</div>
-      <div class="item-sub" style="color:#888;font-size:11px">${nextInfo}</div>
-      <div class="item-actions"><button class="btn-sm btn-red" onclick="hapusItem('panen','${p.id}')">Hapus</button></div>
-    </div>`;
-  }).join('');
-}
-
-function nextPanenDate(lastStr,rotasi){
-  const d=parseDate(lastStr);d.setDate(d.getDate()+(rotasi||14));
-  return d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
 }
 
 /* ===== REALISASI PANEN ===== */
@@ -1177,7 +1091,7 @@ function renderRekap(){
   const cards=cache.lahan.map(d=>{
     const rotasiCount=cache.realisasi.filter(r=>r.lahan===d.nama).length;
     const incomeAktual=cache.realisasi.filter(r=>r.lahan===d.nama).reduce((a,r)=>a+(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0),0);
-    const incomeEst=cache.panen.filter(p=>p.lahan===d.nama).reduce((a,p)=>a+(p.income||0),0);
+    const incomeEst=0;
     const modalTotal=cache.modal.filter(m=>m.lahan===d.nama).reduce((a,m)=>a+(m.total||0),0);
     return `<div class="rekap-card">
       <div class="rekap-head">${d.nama} <span style="font-weight:400;color:#666">${d.ha}ha / ${fmt(d.pokok||0)} pokok</span></div>
@@ -1199,10 +1113,8 @@ function exportCSV(){
   cache.lahan.forEach(d=>csv+=`${d.nama},${d.ha},${d.pokok},${d.tahun},${d.kondisi},${d.topo},"${d.ket||''}"\n`);
   csv+='\n=== JADWAL PEMUPUKAN ===\nLahan,Pupuk,Dosis/Pokok (kg),Total (kg),Bulan 1,Bulan 2,Metode,Catatan\n';
   cache.pupuk.forEach(p=>csv+=`${p.lahan},${p.pupuk},${p.dosis},${p.total_kg},${MNF[(p.bln1||1)-1]},${p.bln2?MNF[p.bln2-1]:''},${p.metode},"${p.ket||''}"\n`);
-  csv+='\n=== JADWAL PANEN ===\nLahan,Pokok,Rotasi (hr),BJR (kg),AKP (%),Est kg/rotasi,Harga Rp/kg,Est Rp/bln\n';
-  cache.panen.forEach(p=>csv+=`${p.lahan},${p.pokok},${p.rotasi},${p.bjr},${p.akp},${p.kg_per_rotasi},${p.harga},${p.income}\n`);
-  csv+='\n=== REALISASI PANEN ===\nLahan,Tanggal,Janjang (jjg),Berat (kg),Harga Rp/kg,Pendapatan\n';
-  cache.realisasi.forEach(r=>csv+=`${r.lahan},${r.tanggal},${r.jumlah_jjg},${r.kg_aktual},${r.harga_aktual},${r.pendapatan}\n`);
+  csv+='\n=== REALISASI PANEN ===\nLahan,Tanggal,Berat (kg),Harga Rp/kg,Upah/kg,Total Upah,Pendapatan Kotor,Pendapatan Bersih\n';
+  cache.realisasi.forEach(r=>csv+=`${r.lahan},${r.tanggal},${r.kg_aktual},${r.harga_aktual},${r.upah_panen||0},${r.total_upah||0},${r.pendapatan},${r.pendapatan_bersih||r.pendapatan}\n`);
   csv+='\n=== LOG AKTIVITAS ===\nLahan,Jenis,Tanggal,Pelaksana,Biaya,Keterangan\n';
   cache.log.forEach(l=>csv+=`${l.lahan},${l.jenis},${l.tanggal},${l.pelaksana||''},${l.biaya||0},"${l.keterangan||''}"\n`);
   csv+='\n=== JADWAL PRUNING ===\nLahan,Pokok,Jenis,Frekuensi,Bulan,Upah/Pokok,Est Biaya\n';
