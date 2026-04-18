@@ -104,6 +104,10 @@ select:focus,input:focus{border-color:#1D9E75}
 .tab-inner-btn{flex:1;padding:9px 6px;border:none;background:transparent;color:#888;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;text-align:center}
 .tab-inner-btn.active{color:#1D9E75;border-bottom-color:#1D9E75;font-weight:700}
 .realisasi-sum{background:#f0faf5;border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.ptr-indicator{display:flex;align-items:center;justify-content:center;gap:8px;height:0;overflow:hidden;transition:height .2s;background:#f5f5f0;font-size:13px;color:#1D9E75;font-weight:600}
+.ptr-indicator.visible{height:52px}
+.ptr-spinner{width:20px;height:20px;border:2.5px solid #c8ead9;border-top-color:#1D9E75;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -143,6 +147,10 @@ select:focus,input:focus{border-color:#1D9E75}
 
 <!-- APP (tersembunyi sampai PIN benar) -->
 <div id="app-main" class="app-hidden">
+<div class="ptr-indicator" id="ptr-indicator">
+  <div class="ptr-spinner" id="ptr-spinner"></div>
+  <span id="ptr-text">Memuat ulang...</span>
+</div>
 
 <div class="topbar">
   <h1>Kebun Sawit</h1>
@@ -1176,6 +1184,57 @@ function exportCSV(){
 if(sessionStorage.getItem('sawit_auth')==='1'){
   initSelects();loadAll();
 }
+
+/* ===== PULL TO REFRESH ===== */
+let ptrStartY=0;
+let ptrActive=false;
+let ptrTriggered=false;
+const PTR_THRESHOLD=80;
+
+document.addEventListener('touchstart',e=>{
+  if(window.scrollY===0 && e.touches[0]){
+    ptrStartY=e.touches[0].clientY;
+    ptrActive=true;
+    ptrTriggered=false;
+  }
+},{passive:true});
+
+document.addEventListener('touchmove',e=>{
+  if(!ptrActive)return;
+  const dy=e.touches[0].clientY-ptrStartY;
+  if(dy<=0){ptrActive=false;return;}
+  const ind=document.getElementById('ptr-indicator');
+  const txt=document.getElementById('ptr-text');
+  if(dy>PTR_THRESHOLD){
+    ind.classList.add('visible');
+    txt.textContent='Lepas untuk refresh...';
+    ptrTriggered=true;
+  } else {
+    ind.classList.add('visible');
+    txt.textContent='Tarik untuk refresh...';
+    ptrTriggered=false;
+  }
+},{passive:true});
+
+document.addEventListener('touchend',async()=>{
+  if(!ptrActive)return;
+  ptrActive=false;
+  const ind=document.getElementById('ptr-indicator');
+  const txt=document.getElementById('ptr-text');
+  if(ptrTriggered){
+    txt.textContent='Memuat ulang...';
+    await loadAll();
+    const activePanel=document.querySelector('.panel.active');
+    if(activePanel){
+      const id=activePanel.id.replace('p-','');
+      const renders={dashboard:renderDashboard,lahan:renderLahan,pupuk:()=>{renderPupuk();renderPupukCal();},realisasi:renderRealisasi,pruning:renderPruning,racun:renderRacun,log:renderLog,modal:renderModal,rekap:renderRekap};
+      if(renders[id])renders[id]();
+    }
+    showToast('Data berhasil diperbarui');
+  }
+  setTimeout(()=>ind.classList.remove('visible'),300);
+  ptrTriggered=false;
+});
 </script>
 </body>
 </html>
