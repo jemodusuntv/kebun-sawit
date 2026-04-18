@@ -468,12 +468,7 @@ function logout(){
   document.getElementById('pin-error').textContent='';
 }
 
-// Cek kalau sudah login di session ini
-if(sessionStorage.getItem('sawit_auth')==='1'){
-  document.getElementById('pin-screen').style.display='none';
-  document.getElementById('app-main').classList.remove('app-hidden');
-  initSelects();loadAll();
-}
+// Cek session dijalankan di bawah setelah semua fungsi didefinisikan
 
 let LAHAN_NAMES=['Yurni','Dekol','Torus','Ujang','Padang','Telago','SD TLD','Roli','Quari ulu'];
 const MN=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
@@ -1077,7 +1072,6 @@ function hitungDueDate(){
 }
 
 /* ===== JADWAL AKTIF ===== */
-let filterJadwalMode='semua';
 
 function statusJadwal(due){
   const today=new Date();today.setHours(0,0,0,0);
@@ -1328,6 +1322,14 @@ document.addEventListener('touchend',async()=>{
   setTimeout(()=>ind.classList.remove('visible'),300);
   ptrTriggered=false;
 });
+
+// Cek session — dijalankan SETELAH semua fungsi didefinisikan
+if(sessionStorage.getItem('sawit_auth')==='1'){
+  document.getElementById('pin-screen').style.display='none';
+  document.getElementById('app-main').classList.remove('app-hidden');
+  initSelects();
+  loadAll();
+}
 </script>
 </body>
 </html>
