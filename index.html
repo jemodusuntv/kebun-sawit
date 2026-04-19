@@ -1493,6 +1493,38 @@ function updateNavArrows(idx){
   next.style.opacity=idx===TABS.length-1?'0.3':'1';
 }
 
+function goTab(dir){
+  const cur=document.querySelector('.panel.active');
+  if(!cur)return;
+  const idx=TABS.indexOf(cur.id.replace('p-',''));
+  const next=dir==='next'?Math.min(idx+1,TABS.length-1):Math.max(idx-1,0);
+  if(next===idx)return;
+  const btns=document.querySelectorAll('.nav-btn');
+  switchTab(TABS[next],btns[next]);
+  btns[next].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+
+function initSwipe(){
+  // Tombol panah
+  document.getElementById('nav-prev').onclick=()=>goTab('prev');
+  document.getElementById('nav-next').onclick=()=>goTab('next');
+  updateNavArrows(0);
+
+  // Swipe gesture
+  let x0=0,y0=0,t0=0;
+  const el=document.querySelector('.content');
+  if(!el)return;
+  el.ontouchstart=e=>{x0=e.touches[0].clientX;y0=e.touches[0].clientY;t0=Date.now();};
+  el.ontouchend=e=>{
+    const dx=e.changedTouches[0].clientX-x0;
+    const dy=e.changedTouches[0].clientY-y0;
+    if(Date.now()-t0>500)return;
+    if(Math.abs(dx)<40)return;
+    if(Math.abs(dy)>Math.abs(dx))return;
+    goTab(dx<0?'next':'prev');
+  };
+}
+
 // Inisialisasi — load PIN dari database dulu, baru tampilkan layar
 (async()=>{
   await loadPin();
