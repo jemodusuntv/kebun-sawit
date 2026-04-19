@@ -1415,6 +1415,41 @@ document.addEventListener('touchend',async()=>{
   ptrTriggered=false;
 });
 
+/* ===== SWIPE TAB GESTURE ===== */
+const TABS=['dashboard','jadwal','realisasi','modal','rekap','lahan'];
+let swipeStartX=0, swipeStartY=0, swipeActive=false;
+
+document.addEventListener('touchstart',e=>{
+  // Jangan aktifkan swipe kalau di dalam nav atau pin screen
+  if(e.target.closest('.nav')||e.target.closest('#pin-screen'))return;
+  swipeStartX=e.touches[0].clientX;
+  swipeStartY=e.touches[0].clientY;
+  swipeActive=true;
+},{passive:true});
+
+document.addEventListener('touchend',e=>{
+  if(!swipeActive)return;
+  swipeActive=false;
+  const dx=e.changedTouches[0].clientX-swipeStartX;
+  const dy=e.changedTouches[0].clientY-swipeStartY;
+  // Hanya proses kalau geseran horizontal lebih dominan dari vertikal
+  if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.8)return;
+  const activePanel=document.querySelector('.panel.active');
+  if(!activePanel)return;
+  const currentId=activePanel.id.replace('p-','');
+  const currentIdx=TABS.indexOf(currentId);
+  if(currentIdx===-1)return;
+  let nextIdx;
+  if(dx<0)nextIdx=Math.min(currentIdx+1,TABS.length-1); // geser kiri → tab berikutnya
+  else nextIdx=Math.max(currentIdx-1,0);                 // geser kanan → tab sebelumnya
+  if(nextIdx===currentIdx)return;
+  const nextTab=TABS[nextIdx];
+  const navBtns=document.querySelectorAll('.nav-btn');
+  switchTab(nextTab,navBtns[nextIdx]);
+  // Scroll nav agar tab aktif terlihat
+  navBtns[nextIdx].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+},{passive:true});
+
 // Inisialisasi — load PIN dari database dulu, baru tampilkan layar
 (async()=>{
   await loadPin();
