@@ -113,7 +113,7 @@ select:focus,input:focus{border-color:#1D9E75}
 <body>
 
 <!-- PIN SCREEN -->
-<div id="pin-screen" class="pin-screen">
+<div id="pin-screen" class="pin-screen" style="display:none">
   <div class="pin-logo">
     <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 2-10 7"/></svg>
   </div>
@@ -283,6 +283,15 @@ select:focus,input:focus{border-color:#1D9E75}
   </div>
   <div class="section-lbl">Lahan terdaftar</div>
   <div id="list-lahan"><div class="loading">Memuat...</div></div>
+
+  <div class="section-lbl" style="margin-top:20px">Keamanan — Ganti PIN</div>
+  <div class="card">
+    <div class="card-title">Ganti PIN masuk</div>
+    <div class="form-group"><label>PIN lama</label><input type="number" id="pin-lama" placeholder="Masukkan PIN lama" maxlength="6"></div>
+    <div class="form-group"><label>PIN baru</label><input type="number" id="pin-baru" placeholder="Minimal 4 digit angka" maxlength="8"></div>
+    <div class="form-group"><label>Konfirmasi PIN baru</label><input type="number" id="pin-konfirm" placeholder="Ulangi PIN baru" maxlength="8"></div>
+    <button class="btn btn-green" onclick="gantiPin()">Simpan PIN baru</button>
+  </div>
 </div>
 
 <!-- REALISASI PANEN -->
@@ -417,13 +426,23 @@ const SUPABASE_KEY='sb_publishable_9KvrV7Y8XXF_KBPBaqME3Q_CJSfnhMU';
 const H={'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
 
 /* ===== PIN SYSTEM ===== */
-const CORRECT_PIN='123456'; // GANTI PIN DI SINI
+let CORRECT_PIN='';  // diambil dari database
 let pinCurrent='';
 let pinLocked=false;
 let pinAttempts=0;
 
+async function loadPin(){
+  try{
+    const res=await fetch(SUPABASE_URL+'/rest/v1/pengaturan?kunci=eq.pin&select=nilai',{headers:H});
+    const data=await res.json();
+    if(data&&data[0])CORRECT_PIN=data[0].nilai;
+    else CORRECT_PIN='123456'; // fallback
+  }catch(e){CORRECT_PIN='123456';}
+}
+
 function pinInput(num){
   if(pinLocked)return;
+  if(!CORRECT_PIN){document.getElementById('pin-error').textContent='Menghubungkan ke server...';return;}
   if(pinCurrent.length>=6)return;
   pinCurrent+=num;
   updatePinDots();
@@ -474,6 +493,27 @@ function logout(){
   pinCurrent='';pinAttempts=0;pinLocked=false;
   updatePinDots();
   document.getElementById('pin-error').textContent='';
+}
+
+async function gantiPin(){
+  const pinLama=document.getElementById('pin-lama').value.trim();
+  const pinBaru=document.getElementById('pin-baru').value.trim();
+  const pinKonfirm=document.getElementById('pin-konfirm').value.trim();
+  if(!pinLama||!pinBaru||!pinKonfirm){showToast('Semua field wajib diisi');return;}
+  if(pinLama!==CORRECT_PIN){showToast('PIN lama salah');return;}
+  if(pinBaru.length<4){showToast('PIN baru minimal 4 digit');return;}
+  if(pinBaru!==pinKonfirm){showToast('Konfirmasi PIN tidak cocok');return;}
+  if(!/^\d+$/.test(pinBaru)){showToast('PIN hanya boleh angka');return;}
+  try{
+    await fetch(SUPABASE_URL+'/rest/v1/pengaturan?kunci=eq.pin',{
+      method:'PATCH',
+      headers:{...H,'Prefer':'return=representation'},
+      body:JSON.stringify({nilai:pinBaru})
+    });
+    CORRECT_PIN=pinBaru;
+    ['pin-lama','pin-baru','pin-konfirm'].forEach(id=>document.getElementById(id).value='');
+    showToast('PIN berhasil diganti!');
+  }catch(e){showToast('Gagal ganti PIN: '+e.message);}
 }
 
 // Cek session dijalankan di bawah setelah semua fungsi didefinisikan
@@ -1377,13 +1417,19 @@ document.addEventListener('touchend',async()=>{
   ptrTriggered=false;
 });
 
-// Cek session — dijalankan SETELAH semua fungsi didefinisikan
-if(sessionStorage.getItem('sawit_auth')==='1'){
-  document.getElementById('pin-screen').style.display='none';
-  document.getElementById('app-main').classList.remove('app-hidden');
-  initSelects();
-  loadAll();
-}
+// Inisialisasi — load PIN dari database dulu, baru tampilkan layar
+(async()=>{
+  await loadPin();
+  if(sessionStorage.getItem('sawit_auth')==='1'){
+    document.getElementById('pin-screen').style.display='none';
+    document.getElementById('app-main').classList.remove('app-hidden');
+    initSelects();
+    loadAll();
+  } else {
+    // Tampilkan PIN screen setelah PIN siap
+    document.getElementById('pin-screen').style.display='flex';
+  }
+})();
 </script>
 </body>
 </html>
