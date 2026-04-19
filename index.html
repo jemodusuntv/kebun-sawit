@@ -1365,7 +1365,7 @@ if(sessionStorage.getItem('sawit_auth')==='1'){
 }
 
 /* ===== PULL TO REFRESH ===== */
-let ptrStartY=0;
+let ptrStartY=0, ptrStartX=0;
 let ptrActive=false;
 let ptrTriggered=false;
 const PTR_THRESHOLD=80;
@@ -1373,6 +1373,7 @@ const PTR_THRESHOLD=80;
 document.addEventListener('touchstart',e=>{
   if(window.scrollY===0 && e.touches[0]){
     ptrStartY=e.touches[0].clientY;
+    ptrStartX=e.touches[0].clientX;
     ptrActive=true;
     ptrTriggered=false;
   }
@@ -1380,7 +1381,10 @@ document.addEventListener('touchstart',e=>{
 
 document.addEventListener('touchmove',e=>{
   if(!ptrActive)return;
+  const dx=Math.abs(e.touches[0].clientX-ptrStartX);
   const dy=e.touches[0].clientY-ptrStartY;
+  // Kalau gerak horizontal lebih besar → bukan PTR, batalkan
+  if(dx>30){ptrActive=false;return;}
   if(dy<=0){ptrActive=false;return;}
   const ind=document.getElementById('ptr-indicator');
   const txt=document.getElementById('ptr-text');
@@ -1417,36 +1421,42 @@ document.addEventListener('touchend',async()=>{
 
 /* ===== SWIPE TAB GESTURE ===== */
 const TABS=['dashboard','jadwal','realisasi','modal','rekap','lahan'];
-let swipeStartX=0, swipeStartY=0, swipeActive=false;
+let swipeStartX=0, swipeStartY=0, swipeStartTime=0, swipeLocked=false;
 
 document.addEventListener('touchstart',e=>{
-  // Jangan aktifkan swipe kalau di dalam nav atau pin screen
   if(e.target.closest('.nav')||e.target.closest('#pin-screen'))return;
   swipeStartX=e.touches[0].clientX;
   swipeStartY=e.touches[0].clientY;
-  swipeActive=true;
+  swipeStartTime=Date.now();
+  swipeLocked=false;
+},{passive:true});
+
+document.addEventListener('touchmove',e=>{
+  if(swipeLocked)return;
+  const dx=Math.abs(e.touches[0].clientX-swipeStartX);
+  const dy=Math.abs(e.touches[0].clientY-swipeStartY);
+  // Kalau gerakan vertikal lebih besar dari horizontal, kunci swipe tab
+  if(dy>dx&&dy>10) swipeLocked=true;
 },{passive:true});
 
 document.addEventListener('touchend',e=>{
-  if(!swipeActive)return;
-  swipeActive=false;
+  if(swipeLocked)return;
   const dx=e.changedTouches[0].clientX-swipeStartX;
   const dy=e.changedTouches[0].clientY-swipeStartY;
-  // Hanya proses kalau geseran horizontal lebih dominan dari vertikal
-  if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.8)return;
+  const dt=Date.now()-swipeStartTime;
+  // Minimal 50px horizontal, waktu < 400ms, vertikal < 80px
+  if(Math.abs(dx)<50||Math.abs(dy)>80||dt>400)return;
   const activePanel=document.querySelector('.panel.active');
   if(!activePanel)return;
   const currentId=activePanel.id.replace('p-','');
   const currentIdx=TABS.indexOf(currentId);
   if(currentIdx===-1)return;
-  let nextIdx;
-  if(dx<0)nextIdx=Math.min(currentIdx+1,TABS.length-1); // geser kiri → tab berikutnya
-  else nextIdx=Math.max(currentIdx-1,0);                 // geser kanan → tab sebelumnya
+  const nextIdx=dx<0
+    ?Math.min(currentIdx+1,TABS.length-1)
+    :Math.max(currentIdx-1,0);
   if(nextIdx===currentIdx)return;
-  const nextTab=TABS[nextIdx];
   const navBtns=document.querySelectorAll('.nav-btn');
-  switchTab(nextTab,navBtns[nextIdx]);
-  // Scroll nav agar tab aktif terlihat
+  switchTab(TABS[nextIdx],navBtns[nextIdx]);
   navBtns[nextIdx].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
 },{passive:true});
 
