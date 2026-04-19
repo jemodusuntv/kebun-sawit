@@ -1096,8 +1096,6 @@ function exportCSV(){
   cache.jadwal.forEach(j=>csv+=`${j.lahan},${j.jenis},"${j.detail||''}",${j.tanggal_due},${j.interval_bulan||''},${j.status},${j.sumber}\n`);
   csv+='\n=== REALISASI PANEN ===\nLahan,Tanggal,Berat (kg),Harga Rp/kg,Upah/kg,Total Upah,Pendapatan Kotor,Pendapatan Bersih\n';
   cache.realisasi.forEach(r=>csv+=`${r.lahan},${r.tanggal},${r.kg_aktual},${r.harga_aktual},${r.upah_panen||0},${r.total_upah||0},${r.pendapatan},${r.pendapatan_bersih||r.pendapatan}\n`);
-  csv+='\n=== HISTORI AKTIVITAS ===\nLahan,Jenis,Tanggal,Pelaksana,Biaya,Keterangan\n';
-  cache.log.forEach(l=>csv+=`${l.lahan},${l.jenis},${l.tanggal},${l.pelaksana||''},${l.biaya||0},"${l.keterangan||''}"\n`);
   csv+='\n=== MODAL / BIAYA AKTUAL ===\nLahan,Kategori,Jenis,Tanggal,Jumlah,Satuan,Harga Satuan,Total,Keterangan\n';
   cache.modal.forEach(m=>csv+=`${m.lahan},${m.kategori},${m.jenis},${m.tanggal},${m.jumlah},${m.satuan||''},${m.harga_satuan||0},${m.total||0},"${m.keterangan||''}"\n`);
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
