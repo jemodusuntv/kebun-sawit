@@ -588,8 +588,31 @@ function switchTab(name,btn){
   window.scrollTo(0,0);
 }
 
-async function loadAll(){
+const CACHE_KEY='sawit_cache_v1';
+
+function saveCache(){
+  try{sessionStorage.setItem(CACHE_KEY,JSON.stringify(cache));}catch(e){}
+}
+
+function loadCacheLocal(){
   try{
+    const raw=sessionStorage.getItem(CACHE_KEY);
+    if(!raw)return false;
+    const saved=JSON.parse(raw);
+    if(!saved.lahan)return false;
+    cache=saved;
+    setConn(true);
+    refreshLahanSelects();
+    renderDashboard();
+    return true;
+  }catch(e){return false;}
+}
+
+async function loadAll(silent=false){
+  try{
+    // Tampilkan cache lama dulu kalau ada (instan)
+    if(!silent)loadCacheLocal();
+    // Fetch data baru dari Supabase di background
     const [lahan,realisasi,modal,jadwal]=await Promise.all([
       sb('lahan','GET',null,'order=nama'),
       sb('realisasi_panen','GET',null,'order=tanggal.desc'),
@@ -597,8 +620,14 @@ async function loadAll(){
       sb('jadwal_aktif','GET',null,'order=tanggal_due'),
     ]);
     cache={lahan,realisasi,modal,jadwal};
+    saveCache();
     setConn(true);refreshLahanSelects();renderDashboard();
-  }catch(e){setConn(false);console.error(e);}
+  }catch(e){
+    setConn(false);
+    console.error(e);
+    // Kalau gagal fetch, tetap tampilkan cache lama
+    if(loadCacheLocal())showToast('Offline — menampilkan data terakhir');
+  }
 }
 
 function refreshLahanSelects(){
@@ -1416,7 +1445,7 @@ document.addEventListener('touchend',async()=>{
   const txt=document.getElementById('ptr-text');
   if(ptrTriggered){
     txt.textContent='Memuat ulang...';
-    await loadAll();
+    await loadAll(true);
     const activePanel=document.querySelector('.panel.active');
     if(activePanel){
       const id=activePanel.id.replace('p-','');
