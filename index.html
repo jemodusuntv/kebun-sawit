@@ -35,7 +35,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .nav::-webkit-scrollbar{display:none}
 .nav-btn{flex:0 0 auto;padding:11px 15px;border:none;border-bottom:2.5px solid transparent;background:transparent;color:#888;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
 .nav-btn.active{color:#1D9E75;border-bottom-color:#1D9E75;font-weight:700}
-.content{padding:12px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.content{padding:12px;padding-bottom:80px}
+.nav-arrows{position:fixed;bottom:20px;left:0;right:0;display:flex;justify-content:space-between;padding:0 16px;pointer-events:none;z-index:200}
+.nav-arrow{width:48px;height:48px;border-radius:50%;background:#1D9E75;color:#fff;border:none;font-size:22px;display:flex;align-items:center;justify-content:center;pointer-events:all;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);transition:opacity .2s}
+.nav-arrow:active{background:#0F6E56;transform:scale(0.95)}
 .panel{display:none}.panel.active{display:block}
 .card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #e8e8e8}
 .card-title{font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
@@ -418,6 +421,10 @@ select:focus,input:focus{border-color:#1D9E75}
 </div>
 
 </div><!-- end app-main -->
+<div class="nav-arrows" id="nav-arrows" style="display:none">
+  <button class="nav-arrow" id="nav-prev">&#8592;</button>
+  <button class="nav-arrow" id="nav-next">&#8594;</button>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -471,6 +478,7 @@ function checkPin(){
     document.getElementById('pin-screen').style.display='none';
     document.getElementById('app-main').classList.remove('app-hidden');
     initSelects();loadAll();initSwipe();
+  document.getElementById('nav-arrows').style.display='flex';
   } else {
     pinAttempts++;
     updatePinDots('error');
@@ -576,6 +584,8 @@ function switchTab(name,btn){
   document.getElementById('p-'+name).classList.add('active');
   const renders={dashboard:renderDashboard,jadwal:renderJadwal,realisasi:renderRealisasi,modal:renderModal,rekap:renderRekap,lahan:renderLahan};
   if(renders[name])renders[name]();
+  updateNavArrows(TABS.indexOf(name));
+  window.scrollTo(0,0);
 }
 
 async function loadAll(){
@@ -1419,48 +1429,39 @@ document.addEventListener('touchend',async()=>{
   ptrTriggered=false;
 });
 
-/* ===== SWIPE TAB GESTURE ===== */
+/* ===== NAV ARROWS ===== */
 const TABS=['dashboard','jadwal','realisasi','modal','rekap','lahan'];
 
 function initSwipe(){
-  let x0=0,y0=0,t0=0,moved=false;
-  const el=document.querySelector('.content');
-  if(!el)return;
-
-  el.ontouchstart=function(e){
-    x0=e.touches[0].clientX;
-    y0=e.touches[0].clientY;
-    t0=Date.now();
-    moved=false;
-  };
-
-  el.ontouchmove=function(e){
-    moved=true;
-  };
-
-  el.ontouchend=function(e){
-    if(!moved)return;
-    const x1=e.changedTouches[0].clientX;
-    const y1=e.changedTouches[0].clientY;
-    const dx=x1-x0;
-    const dy=y1-y0;
-    const dt=Date.now()-t0;
-    // Syarat: cukup cepat, cukup jauh horizontal, tidak terlalu vertikal
-    if(dt>600)return;
-    if(Math.abs(dx)<35)return;
-    if(Math.abs(dy)>Math.abs(dx)*1.2)return;
+  document.getElementById('nav-prev').onclick=function(){
     const cur=document.querySelector('.panel.active');
     if(!cur)return;
     const idx=TABS.indexOf(cur.id.replace('p-',''));
-    if(idx===-1)return;
-    const next=dx<0
-      ?Math.min(idx+1,TABS.length-1)
-      :Math.max(idx-1,0);
-    if(next===idx)return;
+    if(idx<=0)return;
     const btns=document.querySelectorAll('.nav-btn');
-    switchTab(TABS[next],btns[next]);
-    btns[next].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+    switchTab(TABS[idx-1],btns[idx-1]);
+    btns[idx-1].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+    updateNavArrows(idx-1);
   };
+  document.getElementById('nav-next').onclick=function(){
+    const cur=document.querySelector('.panel.active');
+    if(!cur)return;
+    const idx=TABS.indexOf(cur.id.replace('p-',''));
+    if(idx>=TABS.length-1)return;
+    const btns=document.querySelectorAll('.nav-btn');
+    switchTab(TABS[idx+1],btns[idx+1]);
+    btns[idx+1].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+    updateNavArrows(idx+1);
+  };
+  updateNavArrows(0);
+}
+
+function updateNavArrows(idx){
+  const prev=document.getElementById('nav-prev');
+  const next=document.getElementById('nav-next');
+  if(!prev||!next)return;
+  prev.style.opacity=idx===0?'0.3':'1';
+  next.style.opacity=idx===TABS.length-1?'0.3':'1';
 }
 
 // Inisialisasi — load PIN dari database dulu, baru tampilkan layar
@@ -1472,6 +1473,7 @@ function initSwipe(){
     initSelects();
     loadAll();
     initSwipe();
+    document.getElementById('nav-arrows').style.display='flex';
   } else {
     // Tampilkan PIN screen setelah PIN siap
     document.getElementById('pin-screen').style.display='flex';
