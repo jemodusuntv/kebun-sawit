@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v6.4</title>
+<title>Kebun Sawit v6.5</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -201,7 +201,7 @@ select:focus,input:focus{border-color:var(--green)}
 </div>
 
 <div class="topbar">
-  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v6.4</span></h1>
+  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v6.5</span></h1>
   <div style="display:flex;align-items:center;gap:8px">
     <div id="conn-status" class="online-badge"><span class="dot-offline" id="conn-dot"></span><span id="conn-txt">Menghubungkan...</span></div>
     <button onclick="logout()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:20px;cursor:pointer">Kunci</button>
@@ -780,9 +780,9 @@ const renderDashboard=()=>{
 
   let alertHtml='';
 
-  // Peringatan panen terlewat — paling atas, mencolok
+  // Peringatan panen terlewat — paling atas, mencolok → arahkan ke Realisasi
   if(panenTelat.length){
-    alertHtml+=`<div class="alert-panen-telat" onclick="document.querySelectorAll('.nav-btn')[1].click()">
+    alertHtml+=`<div class="alert-panen-telat" onclick="switchTab('realisasi',document.querySelectorAll('.nav-btn')[2])">
       <div style="display:flex;align-items:center;gap:10px">
         <div style="font-size:32px">🚨</div>
         <div style="flex:1">
@@ -791,7 +791,7 @@ const renderDashboard=()=>{
             const hari=Math.abs(Math.round((parseDate(j.tanggal_due)-today2)/(1000*60*60*24)));
             return`<div style="font-size:13px;color:var(--text);margin-bottom:2px"><b>${j.lahan}</b> — telat <b style="color:var(--red)">${hari} hari</b> <span style="color:var(--text2);font-size:11px">(due: ${j.tanggal_due})</span></div>`;
           }).join('')}
-          <div style="font-size:11px;color:var(--text2);margin-top:6px">Segera catat realisasi panen → jadwal baru otomatis dibuat</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:6px">Tap untuk catat realisasi panen →</div>
         </div>
       </div>
     </div>`;
@@ -800,10 +800,16 @@ const renderDashboard=()=>{
   // Jadwal lain yang mendekati
   alertHtml+=jadwalAlert.map(j=>{
     const st=statusJadwal(j.tanggal_due);
-    const cls=st.diff<=3?'alert-kuning':'alert-hijau';
-    return`<div class="alert-card ${cls}" onclick="document.querySelectorAll('.nav-btn')[1].click()">
-      <div class="alert-title">${j.lahan} — ${j.jenis}</div>
-      <div class="alert-sub">${j.detail||''} &nbsp;|&nbsp; ${st.label}</div>
+    const isPanen=j.jenis==='Panen';
+    const cls=isPanen?(st.diff<=3?'alert-kuning':'alert-hijau'):st.diff<=3?'alert-kuning':'alert-hijau';
+    // Panen → tab Realisasi (index 2), selain panen → tab Jadwal (index 1)
+    const onClick=isPanen
+      ?`switchTab('realisasi',document.querySelectorAll('.nav-btn')[2])`
+      :`switchTab('jadwal',document.querySelectorAll('.nav-btn')[1])`;
+    const label=isPanen?'Panen':j.detail||j.jenis;
+    return`<div class="alert-card ${cls}" onclick="${onClick}">
+      <div class="alert-title">${j.lahan} — ${label}</div>
+      <div class="alert-sub">${isPanen?'Tap untuk catat panen':j.detail||''} &nbsp;|&nbsp; ${st.label}</div>
     </div>`;
   }).join('');
 
@@ -1144,7 +1150,7 @@ const JENIS_MODAL={
   Pupuk:['Urea (N)','MOP/KCl (K)','TSP/SP-36 (P)','Dolomit (Mg)','Borate (B)','NPK Majemuk','Kiserit','PKSC'],
   Herbisida:['Glifosat (Round-up)','Parakuat (Gramoxone)','Metil Metsulfuron','Fluroksipir','2,4-D Amin','Triklopir','Campuran'],
   Pruning:['Upah sanitasi','Upah songgo 2','Upah songgo 1','Upah kastrasi','Upah umum'],
-  'Tenaga Kerja':['Tebas Rumput','Babat manual','Angkut pelepah','Pemupukan manual','Panen manual','Lainnya']
+  'Tenaga Kerja':['Tebas Rumput','Lainnya']
 };
 const updateJenisModal=()=>{
   const kat=document.getElementById('mod-kategori').value;
