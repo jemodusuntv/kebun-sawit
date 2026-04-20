@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v6.5</title>
+<title>Kebun Sawit v6.6</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -190,7 +190,7 @@ select:focus,input:focus{border-color:var(--green)}
     <button class="pin-btn del" onclick="pinDelete()">&#9003;</button>
   </div>
   <div class="pin-hint">Lupa PIN? Hubungi admin</div>
-  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 6.5</div>
+  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 6.6</div>
 </div>
 
 <!-- APP -->
@@ -201,7 +201,7 @@ select:focus,input:focus{border-color:var(--green)}
 </div>
 
 <div class="topbar">
-  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v6.5</span></h1>
+  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v6.6</span></h1>
   <div style="display:flex;align-items:center;gap:8px">
     <div id="conn-status" class="online-badge"><span class="dot-offline" id="conn-dot"></span><span id="conn-txt">Menghubungkan...</span></div>
     <button onclick="logout()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:20px;cursor:pointer">Kunci</button>
@@ -230,6 +230,10 @@ select:focus,input:focus{border-color:var(--green)}
   <div class="metric-row-2">
     <div class="metric"><div class="metric-val" id="d-panen-bulan" style="font-size:16px">-</div><div class="metric-lbl">Panen bulan ini (kg)</div></div>
     <div class="metric"><div class="metric-val" id="d-income-bulan" style="font-size:16px;color:var(--orange)">-</div><div class="metric-lbl">Pendapatan bulan ini</div></div>
+  </div>
+  <div class="metric-row-2">
+    <div class="metric"><div class="metric-val" id="d-modal-bulan" style="font-size:16px;color:var(--red)">-</div><div class="metric-lbl">Modal bulan ini</div></div>
+    <div class="metric"><div class="metric-val" id="d-ur-bulan" style="font-size:16px">-</div><div class="metric-lbl" id="d-ur-bulan-lbl">Untung/Rugi bulan ini</div></div>
   </div>
   <div class="card"><div class="card-title">Jadwal minggu ini</div><div id="d-minggu"><div class="loading">Memuat...</div></div></div>
   <div class="card"><div class="card-title">Aktivitas bulan ini — <span id="d-bulan"></span></div><div id="d-aktivitas"><div class="loading">Memuat...</div></div></div>
@@ -762,6 +766,18 @@ const renderDashboard=()=>{
   });
   document.getElementById('d-panen-bulan').textContent=fmt(reaBulanIni.reduce((a,r)=>a+(r.kg_aktual||0),0))+' kg';
   document.getElementById('d-income-bulan').textContent=fmtK(reaBulanIni.reduce((a,r)=>a+(r.pendapatan_bersih||r.pendapatan||0),0));
+
+  const modalBulanIni=cache.modal.filter(m=>{
+    const d=parseDate(m.tanggal);
+    return d.getMonth()+1===bulanNow&&d.getFullYear()===tahunNow;
+  });
+  const totalIncBulan=reaBulanIni.reduce((a,r)=>a+(r.pendapatan_bersih||r.pendapatan||0),0);
+  const totalModBulan=modalBulanIni.reduce((a,m)=>a+(m.total||0),0);
+  const urBulan=totalIncBulan-totalModBulan;
+  document.getElementById('d-modal-bulan').textContent=fmtK(totalModBulan);
+  document.getElementById('d-ur-bulan').textContent=fmtK(Math.abs(urBulan));
+  document.getElementById('d-ur-bulan').style.color=urBulan>=0?'var(--green)':'var(--red)';
+  document.getElementById('d-ur-bulan-lbl').textContent=(urBulan>=0?'Untung':'Rugi')+' bulan ini';
 
   // Alert jadwal
   const today2=new Date();today2.setHours(0,0,0,0);
