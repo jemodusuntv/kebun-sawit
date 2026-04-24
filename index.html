@@ -6,7 +6,23 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v6.6</title>
+<title>Kebun Sawit v6.7</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kebun Sawit">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "f9f39360-2198-482e-87b6-0d45ec35af8c",
+      notifyButton: { enable: false },
+      serviceWorkerPath: "OneSignalSDKWorker.js",
+    });
+  });
+</script>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -190,7 +206,7 @@ select:focus,input:focus{border-color:var(--green)}
     <button class="pin-btn del" onclick="pinDelete()">&#9003;</button>
   </div>
   <div class="pin-hint">Lupa PIN? Hubungi admin</div>
-  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 6.6</div>
+  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 6.7</div>
 </div>
 
 <!-- APP -->
@@ -201,7 +217,7 @@ select:focus,input:focus{border-color:var(--green)}
 </div>
 
 <div class="topbar">
-  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v6.6</span></h1>
+  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v6.7</span></h1>
   <div style="display:flex;align-items:center;gap:8px">
     <div id="conn-status" class="online-badge"><span class="dot-offline" id="conn-dot"></span><span id="conn-txt">Menghubungkan...</span></div>
     <button onclick="logout()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:20px;cursor:pointer">Kunci</button>
@@ -613,6 +629,7 @@ const loadAll=async(force=false)=>{
     cache={lahan,realisasi,modal,jadwal};
     saveCache();
     setConn(true);refreshSelects();renderDashboard();
+    cekNotifikasiLokal();
   }catch(e){
     setConn(false);
     if(loadCacheLocal())showToast('Offline — data terakhir ditampilkan');
@@ -1416,6 +1433,44 @@ document.addEventListener('touchend',async()=>{
   ptrTriggered=false;
 });
 
+/* ===== SERVICE WORKER & NOTIFIKASI ===== */
+const registerSW=async()=>{
+  if(!('serviceWorker' in navigator))return;
+  try{
+    const reg=await navigator.serviceWorker.register('/kebun-sawit/service-worker.js');
+    if('Notification' in window && Notification.permission==='default'){
+      const perm=await Notification.requestPermission();
+      if(perm==='granted'){
+        showToast('Notifikasi aktif! Kamu akan dapat reminder jadwal 🌿');
+        if('periodicSync' in reg){
+          try{await reg.periodicSync.register('check-jadwal',{minInterval:6*60*60*1000});}catch(e){}
+        }
+      }
+    }
+    if(reg.active)reg.active.postMessage({type:'SCHEDULE_CHECK'});
+  }catch(e){console.error('SW error:',e);}
+};
+
+const cekNotifikasiLokal=()=>{
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  const today=new Date();today.setHours(0,0,0,0);
+  const panenTelat=cache.jadwal.filter(j=>{
+    if(j.status!=='pending'||j.jenis!=='Panen')return false;
+    return new Date(j.tanggal_due+'T00:00:00')<today;
+  });
+  if(panenTelat.length){
+    const lahan=panenTelat.map(j=>{
+      const hari=Math.round((today-new Date(j.tanggal_due+'T00:00:00'))/86400000);
+      return`${j.lahan} (${hari} hari)`;
+    }).join(', ');
+    new Notification('🚨 Panen Terlewat!',{
+      body:lahan+' — Buka aplikasi untuk catat panen',
+      icon:'/kebun-sawit/icon-192.png',
+      tag:'panen-telat'
+    });
+  }
+};
+
 /* ===== INIT ===== */
 (async()=>{
   await loadPin();
@@ -1424,6 +1479,7 @@ document.addEventListener('touchend',async()=>{
     document.getElementById('app-main').classList.remove('app-hidden');
     document.getElementById('nav-arrows').style.display='flex';
     initApp();
+    registerSW();
   } else {
     document.getElementById('pin-screen').style.display='flex';
   }
