@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v8.1</title>
+<title>Kebun Sawit v8.2</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -191,7 +191,7 @@ select:focus,input:focus{border-color:var(--green)}
     <button class="pin-btn del" onclick="pinDelete()">&#9003;</button>
   </div>
   <div class="pin-hint">Lupa PIN? Hubungi admin</div>
-  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 8.1</div>
+  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 8.2</div>
 </div>
 
 <!-- APP -->
@@ -202,7 +202,7 @@ select:focus,input:focus{border-color:var(--green)}
 </div>
 
 <div class="topbar">
-  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v8.1</span></h1>
+  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v8.2</span></h1>
   <div style="display:flex;align-items:center;gap:8px">
     <div id="conn-status" class="online-badge"><span class="dot-offline" id="conn-dot"></span><span id="conn-txt">Menghubungkan...</span></div>
     <button onclick="logout()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:20px;cursor:pointer">Kunci</button>
@@ -329,7 +329,12 @@ select:focus,input:focus{border-color:var(--green)}
 
 <!-- BIAYA -->
 <div id="p-modal" class="panel">
-  <div class="section-lbl">Ringkasan biaya</div>
+  <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+    <select id="mb-lahan-filter" onchange="renderModal()" style="flex:1;padding:9px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--input);color:var(--text);font-size:14px">
+      <option value="">Semua lahan</option>
+    </select>
+  </div>
+  <div class="section-lbl" style="margin-top:0">Ringkasan biaya</div>
   <div class="metric-row-2" style="margin-bottom:8px">
     <div class="metric"><div class="metric-val" id="mb-total" style="font-size:16px;color:var(--red)">-</div><div class="metric-lbl">Total semua biaya</div></div>
     <div class="metric"><div class="metric-val" id="mb-bulan" style="font-size:16px;color:var(--orange)">-</div><div class="metric-lbl">Biaya bulan ini</div></div>
@@ -653,6 +658,9 @@ const refreshSelects=()=>{
   // Rekap lahan
   const rl=document.getElementById('rek-lahan-filter');
   if(rl){rl.innerHTML='<option value="">Semua lahan</option>'+LAHAN_NAMES.map(n=>`<option value="${n}">${n}</option>`).join('');}
+  // Biaya lahan filter
+  const bl=document.getElementById('mb-lahan-filter');
+  if(bl){const cur=bl.value;bl.innerHTML='<option value="">Semua lahan</option>'+LAHAN_NAMES.map(n=>`<option value="${n}">${n}</option>`).join('');if(cur)bl.value=cur;}
 };
 
 const initApp=()=>{
@@ -1264,12 +1272,15 @@ const renderModal=()=>{
   const now=new Date();
   const bulanNow=now.getMonth()+1;
   const tahunNow=now.getFullYear();
-  const totP=cache.modal.filter(m=>m.kategori==='Pupuk').reduce((a,m)=>a+(m.total||0),0);
-  const totH=cache.modal.filter(m=>m.kategori==='Herbisida').reduce((a,m)=>a+(m.total||0),0);
-  const totPr=cache.modal.filter(m=>m.kategori==='Pruning').reduce((a,m)=>a+(m.total||0),0);
-  const totTK=cache.modal.filter(m=>m.kategori==='Tenaga Kerja').reduce((a,m)=>a+(m.total||0),0);
+  const lahanFilter=document.getElementById('mb-lahan-filter')?.value||'';
+  const modalFiltered=lahanFilter?cache.modal.filter(m=>m.lahan===lahanFilter):cache.modal;
+
+  const totP=modalFiltered.filter(m=>m.kategori==='Pupuk').reduce((a,m)=>a+(m.total||0),0);
+  const totH=modalFiltered.filter(m=>m.kategori==='Herbisida').reduce((a,m)=>a+(m.total||0),0);
+  const totPr=modalFiltered.filter(m=>m.kategori==='Pruning').reduce((a,m)=>a+(m.total||0),0);
+  const totTK=modalFiltered.filter(m=>m.kategori==='Tenaga Kerja').reduce((a,m)=>a+(m.total||0),0);
   const totAll=totP+totH+totPr+totTK;
-  const totBulan=cache.modal.filter(m=>{
+  const totBulan=modalFiltered.filter(m=>{
     const d=new Date(m.tanggal);
     return d.getMonth()+1===bulanNow&&d.getFullYear()===tahunNow;
   }).reduce((a,m)=>a+(m.total||0),0);
@@ -1281,13 +1292,18 @@ const renderModal=()=>{
   document.getElementById('mb-pruning').textContent=fmtK(totPr);
   document.getElementById('mb-tenaga').textContent=fmtK(totTK);
 
-  // Biaya per lahan
-  const perLahan=LAHAN_NAMES.map(n=>({nama:n,tot:cache.modal.filter(m=>m.lahan===n).reduce((a,m)=>a+(m.total||0),0)})).filter(x=>x.tot>0).sort((a,b)=>b.tot-a.tot);
-  document.getElementById('mb-per-lahan').innerHTML=perLahan.length
-    ?perLahan.map(x=>`<div class="info-row"><span>${x.nama}</span><span style="color:var(--red);font-weight:600">${fmtK(x.tot)}</span></div>`).join('')
-    :'<div class="empty">Belum ada data biaya</div>';
+  // Biaya per lahan — hanya tampil kalau filter semua lahan
+  const perLahanDiv=document.getElementById('mb-per-lahan');
+  if(!lahanFilter){
+    const perLahan=LAHAN_NAMES.map(n=>({nama:n,tot:cache.modal.filter(m=>m.lahan===n).reduce((a,m)=>a+(m.total||0),0)})).filter(x=>x.tot>0).sort((a,b)=>b.tot-a.tot);
+    perLahanDiv.innerHTML=perLahan.length
+      ?perLahan.map(x=>`<div class="info-row"><span>${x.nama}</span><span style="color:var(--red);font-weight:600">${fmtK(x.tot)}</span></div>`).join('')
+      :'<div class="empty">Belum ada data biaya</div>';
+  } else {
+    perLahanDiv.innerHTML='';
+  }
 
-  // Grafik
+  // Grafik — pakai data terfilter
   loadChartJS(()=>{
     const ctx1=document.getElementById('chart-biaya-donat');
     if(ctx1){
@@ -1304,7 +1320,7 @@ const renderModal=()=>{
       for(let i=5;i>=0;i--){
         const d=new Date(now.getFullYear(),now.getMonth()-i,1);
         labels.push(MN[d.getMonth()]);
-        dataTren.push(cache.modal.filter(m=>{const md=new Date(m.tanggal);return md.getMonth()===d.getMonth()&&md.getFullYear()===d.getFullYear();}).reduce((a,m)=>a+(m.total||0),0));
+        dataTren.push(modalFiltered.filter(m=>{const md=new Date(m.tanggal);return md.getMonth()===d.getMonth()&&md.getFullYear()===d.getFullYear();}).reduce((a,m)=>a+(m.total||0),0));
       }
       if(chartBiayaTren)chartBiayaTren.destroy();
       chartBiayaTren=new Chart(ctx2,{
@@ -1315,8 +1331,9 @@ const renderModal=()=>{
     }
   });
 
-  // Riwayat
-  let data=filterBiayaKat?cache.modal.filter(m=>m.kategori===filterBiayaKat):cache.modal;
+  // Riwayat — filter lahan + kategori
+  let data=modalFiltered;
+  if(filterBiayaKat)data=data.filter(m=>m.kategori===filterBiayaKat);
   if(!data.length){document.getElementById('list-modal').innerHTML='<div class="empty">Belum ada data biaya</div>';return;}
   const kb={Pupuk:'b-green',Herbisida:'b-amber',Pruning:'b-blue','Tenaga Kerja':'b-orange'};
   document.getElementById('list-modal').innerHTML=data.map(m=>`<div class="item-card">
