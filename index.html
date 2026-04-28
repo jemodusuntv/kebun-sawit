@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v7.7</title>
+<title>Kebun Sawit v7.8</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -191,7 +191,7 @@ select:focus,input:focus{border-color:var(--green)}
     <button class="pin-btn del" onclick="pinDelete()">&#9003;</button>
   </div>
   <div class="pin-hint">Lupa PIN? Hubungi admin</div>
-  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 7.7</div>
+  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 7.8</div>
 </div>
 
 <!-- APP -->
@@ -202,7 +202,7 @@ select:focus,input:focus{border-color:var(--green)}
 </div>
 
 <div class="topbar">
-  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v7.7</span></h1>
+  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v7.8</span></h1>
   <div style="display:flex;align-items:center;gap:8px">
     <div id="conn-status" class="online-badge"><span class="dot-offline" id="conn-dot"></span><span id="conn-txt">Menghubungkan...</span></div>
     <button onclick="logout()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:20px;cursor:pointer">Kunci</button>
@@ -683,24 +683,15 @@ const reloadTable=async(table)=>{
 /* ===== INIT ===== */
 const refreshSelects=()=>{
   LAHAN_NAMES=cache.lahan.map(l=>l.nama);
-  ['l-nama','rea-lahan','jdw-lahan'].forEach(id=>{
+  ['l-nama','jdw-lahan'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const cur=el.value;
     el.innerHTML='<option value="">-- pilih --</option>'+LAHAN_NAMES.map(n=>`<option value="${n}">${n}</option>`).join('');
     if(cur)el.value=cur;
   });
-  // Filter buttons realisasi
-  const reaF=document.getElementById('rea-filter-row');
-  if(reaF){
-    reaF.innerHTML='<button class="filter-btn'+(filterReaLahan===''?' active':'')+'" onclick="filterRealisasi(\'\',this)">Semua lahan</button>'+
-    LAHAN_NAMES.map(n=>`<button class="filter-btn${filterReaLahan===n?' active':''}" onclick="filterRealisasi('${n}',this)">${n}</button>`).join('');
-  }
   // Rekap lahan
   const rl=document.getElementById('rek-lahan-filter');
   if(rl){rl.innerHTML='<option value="">Semua lahan</option>'+LAHAN_NAMES.map(n=>`<option value="${n}">${n}</option>`).join('');}
-  // Filter bulan realisasi
-  const rb=document.getElementById('rea-bulan-filter');
-  if(rb){rb.innerHTML='<option value="">Semua bulan</option>'+MNF.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('');}
 };
 
 const initApp=()=>{
