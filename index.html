@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v7.4</title>
+<title>Kebun Sawit v7.6</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -191,7 +191,7 @@ select:focus,input:focus{border-color:var(--green)}
     <button class="pin-btn del" onclick="pinDelete()">&#9003;</button>
   </div>
   <div class="pin-hint">Lupa PIN? Hubungi admin</div>
-  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 7.4</div>
+  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 7.6</div>
 </div>
 
 <!-- APP -->
@@ -202,7 +202,7 @@ select:focus,input:focus{border-color:var(--green)}
 </div>
 
 <div class="topbar">
-  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v7.4</span></h1>
+  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v7.6</span></h1>
   <div style="display:flex;align-items:center;gap:8px">
     <div id="conn-status" class="online-badge"><span class="dot-offline" id="conn-dot"></span><span id="conn-txt">Menghubungkan...</span></div>
     <button onclick="logout()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:20px;cursor:pointer">Kunci</button>
@@ -290,6 +290,23 @@ select:focus,input:focus{border-color:var(--green)}
       <div class="grid2">
         <div class="form-group"><label>Interval (bulan) — otomatis</label><input type="number" id="jdw-interval" readonly style="background:var(--bg3);color:var(--green);font-weight:700"></div>
         <div class="form-group"><label>Jatuh tempo (otomatis)</label><input type="text" id="jdw-due-preview" readonly style="background:var(--bg3);color:var(--orange);font-weight:700" placeholder="—"></div>
+      </div>
+      <!-- Form biaya — muncul kalau pilih Pruning, Herbisida, atau Pupuk -->
+      <div id="form-kegiatan-biaya" style="display:none;background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px">Catat biaya kegiatan sekaligus →</div>
+        <div class="grid2">
+          <div class="form-group"><label>Biaya (Rp)</label><input type="number" id="jdw-kegiatan-biaya" placeholder="cth: 500000" min="0"></div>
+          <div class="form-group"><label>Satuan</label>
+            <select id="jdw-kegiatan-satuan">
+              <option value="HOK">HOK</option>
+              <option value="kavling">Kavling</option>
+              <option value="kg">kg</option>
+              <option value="liter">liter</option>
+              <option value="paket">Paket</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Keterangan</label><input type="text" id="jdw-kegiatan-ket" placeholder="cth: 3 orang, 2 hari"></div>
       </div>
       <button class="btn btn-green" onclick="simpanJadwalForm()">Simpan jadwal</button>
     </div>
@@ -1003,6 +1020,15 @@ const updateDetailJadwal=()=>{
   const isPanen=jenis==='Panen';
   document.getElementById('form-panen-inline').style.display=isPanen?'block':'none';
   document.getElementById('form-jadwal-biasa').style.display=isPanen?'none':'block';
+  const formBiaya=document.getElementById('form-kegiatan-biaya');
+  if(formBiaya)formBiaya.style.display=isPanen?'none':'block';
+  // Satuan default per jenis
+  const satuanEl=document.getElementById('jdw-kegiatan-satuan');
+  if(satuanEl){
+    if(jenis==='Herbisida')satuanEl.value='liter';
+    else if(jenis==='Pupuk')satuanEl.value='kg';
+    else satuanEl.value='HOK';
+  }
   if(!isPanen){
     const sel=document.getElementById('jdw-detail');
     sel.innerHTML=(DETAIL_JADWAL[jenis]||[]).map(d=>`<option value="${d.label}" data-interval="${d.interval}">${d.label} (${d.interval} bln)</option>`).join('');
@@ -1070,13 +1096,38 @@ const simpanJadwalForm=async()=>{
   const jenis=document.getElementById('jdw-jenis').value;
   const detail=document.getElementById('jdw-detail').value||jenis;
   const interval=document.getElementById('jdw-interval').value;
+  const katMap={Herbisida:'Herbisida',Pupuk:'Pupuk',Pruning:'Pruning'};
   try{
     await simpanJadwal(lahan,jenis,detail,due,interval,'manual');
+    // Simpan biaya ke modal kalau diisi
+    const biaya=parseInt(document.getElementById('jdw-kegiatan-biaya').value)||0;
+    const ket=document.getElementById('jdw-kegiatan-ket').value;
+    const satuan=document.getElementById('jdw-kegiatan-satuan').value;
+    if(biaya>0&&katMap[jenis]){
+      await sb('modal','POST',{
+        lahan,
+        kategori:katMap[jenis],
+        jenis:detail,
+        tanggal:terakhir,
+        jumlah:1,
+        satuan,
+        harga_satuan:biaya,
+        total:biaya,
+        keterangan:ket
+      });
+      await reloadTable('modal');
+      showToast('Jadwal + biaya '+jenis+' tersimpan');
+    } else {
+      showToast('Jadwal ditambahkan — jatuh tempo: '+due);
+    }
+    // Reset form
+    document.getElementById('jdw-kegiatan-biaya').value='';
+    document.getElementById('jdw-kegiatan-ket').value='';
     await reloadTable('jadwal_aktif');
     renderJadwal();renderDashboard();
-    showToast('Jadwal ditambahkan — jatuh tempo: '+due);
     document.getElementById('jdw-terakhir').value=todayStr();
     document.getElementById('jdw-due-preview').value='—';
+    document.getElementById('jdw-lahan').value='';
     updateDetailJadwal();
   }catch(e){showToast('Gagal: '+e.message);}
 };
