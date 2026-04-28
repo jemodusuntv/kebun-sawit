@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v7.6</title>
+<title>Kebun Sawit v7.7</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -191,7 +191,7 @@ select:focus,input:focus{border-color:var(--green)}
     <button class="pin-btn del" onclick="pinDelete()">&#9003;</button>
   </div>
   <div class="pin-hint">Lupa PIN? Hubungi admin</div>
-  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 7.6</div>
+  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 7.7</div>
 </div>
 
 <!-- APP -->
@@ -202,7 +202,7 @@ select:focus,input:focus{border-color:var(--green)}
 </div>
 
 <div class="topbar">
-  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v7.6</span></h1>
+  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v7.7</span></h1>
   <div style="display:flex;align-items:center;gap:8px">
     <div id="conn-status" class="online-badge"><span class="dot-offline" id="conn-dot"></span><span id="conn-txt">Menghubungkan...</span></div>
     <button onclick="logout()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:20px;cursor:pointer">Kunci</button>
@@ -212,7 +212,7 @@ select:focus,input:focus{border-color:var(--green)}
 <div class="nav">
   <button class="nav-btn active" onclick="switchTab('dashboard',this)">Dashboard</button>
   <button class="nav-btn" onclick="switchTab('jadwal',this)">Jadwal</button>
-  <button class="nav-btn" onclick="switchTab('modal',this)">Modal</button>
+  <button class="nav-btn" onclick="switchTab('modal',this)">Biaya</button>
   <button class="nav-btn" onclick="switchTab('rekap',this)">Rekap</button>
   <button class="nav-btn" onclick="switchTab('lahan',this)">Lahan</button>
 </div>
@@ -232,7 +232,7 @@ select:focus,input:focus{border-color:var(--green)}
     <div class="metric"><div class="metric-val" id="d-income-bulan" style="font-size:16px;color:var(--orange)">-</div><div class="metric-lbl">Pendapatan bulan ini</div></div>
   </div>
   <div class="metric-row-2">
-    <div class="metric"><div class="metric-val" id="d-modal-bulan" style="font-size:16px;color:var(--red)">-</div><div class="metric-lbl">Modal bulan ini</div></div>
+    <div class="metric"><div class="metric-val" id="d-modal-bulan" style="font-size:16px;color:var(--red)">-</div><div class="metric-lbl">Biaya bulan ini</div></div>
     <div class="metric"><div class="metric-val" id="d-ur-bulan" style="font-size:16px">-</div><div class="metric-lbl" id="d-ur-bulan-lbl">Untung/Rugi bulan ini</div></div>
   </div>
   <div class="card"><div class="card-title">Jadwal minggu ini</div><div id="d-minggu"><div class="loading">Memuat...</div></div></div>
@@ -366,53 +366,42 @@ select:focus,input:focus{border-color:var(--green)}
   <div id="list-realisasi"><div class="loading">Memuat...</div></div>
 </div>
 
-<!-- MODAL -->
+<!-- BIAYA -->
 <div id="p-modal" class="panel">
-  <div class="card">
-    <div class="card-title">Input biaya / modal</div>
-    <div class="form-group"><label>Lahan</label><select id="mod-lahan"><option value="">-- pilih --</option></select></div>
-    <div class="grid2">
-      <div class="form-group"><label>Kategori</label>
-        <select id="mod-kategori" onchange="updateJenisModal()">
-          <option value="Pupuk">Pupuk</option>
-          <option value="Herbisida">Herbisida</option>
-          <option value="Pruning">Pruning</option>
-          <option value="Tenaga Kerja">Tenaga Kerja</option>
-        </select>
-      </div>
-      <div class="form-group"><label>Jenis</label><select id="mod-jenis"></select></div>
-    </div>
-    <div class="form-group"><label>Tanggal</label><input type="date" id="mod-tanggal"></div>
-    <div class="grid2">
-      <div class="form-group"><label>Jumlah</label><input type="number" id="mod-jumlah" placeholder="cth: 50" min="0" step="0.5"></div>
-      <div class="form-group"><label>Satuan</label><input type="text" id="mod-satuan" placeholder="cth: kg, liter, HOK"></div>
-    </div>
-    <div class="grid2">
-      <div class="form-group"><label>Harga satuan (Rp)</label><input type="number" id="mod-harga" placeholder="cth: 5000" min="0"></div>
-      <div class="form-group"><label>Total (otomatis)</label><input type="number" id="mod-total" readonly style="background:var(--bg3)"></div>
-    </div>
-    <div class="form-group"><label>Keterangan</label><input type="text" id="mod-ket" placeholder="cth: beli di kios Pak Budi"></div>
-    <div class="edit-info" id="mod-edit-info">Mode edit aktif.<button onclick="batalEditModal()" style="float:right;background:none;border:none;color:var(--red);font-weight:700;font-size:13px;cursor:pointer">Batal</button></div>
-    <button id="mod-save-btn" class="btn btn-green" onclick="simpanModal()">Simpan modal</button>
+  <div class="section-lbl">Ringkasan biaya</div>
+  <div class="metric-row-2" style="margin-bottom:8px">
+    <div class="metric"><div class="metric-val" id="mb-total" style="font-size:16px;color:var(--red)">-</div><div class="metric-lbl">Total semua biaya</div></div>
+    <div class="metric"><div class="metric-val" id="mb-bulan" style="font-size:16px;color:var(--orange)">-</div><div class="metric-lbl">Biaya bulan ini</div></div>
   </div>
-  <div class="filter-row">
-    <button class="filter-btn active" onclick="filterModal('','',this)">Semua</button>
-    <button class="filter-btn" onclick="filterModal('','Pupuk',this)">Pupuk</button>
-    <button class="filter-btn" onclick="filterModal('','Herbisida',this)">Herbisida</button>
-    <button class="filter-btn" onclick="filterModal('','Pruning',this)">Pruning</button>
-    <button class="filter-btn" onclick="filterModal('','Tenaga Kerja',this)">Tenaga Kerja</button>
+  <div class="metric-row-2">
+    <div class="metric"><div class="metric-val" id="mb-pupuk" style="font-size:15px;color:var(--green)">-</div><div class="metric-lbl">Pupuk</div></div>
+    <div class="metric"><div class="metric-val" id="mb-herbisida" style="font-size:15px;color:var(--badge-amber)">-</div><div class="metric-lbl">Herbisida</div></div>
   </div>
-  <input class="search-box" id="mod-search" placeholder="Cari lahan, jenis, atau keterangan..." oninput="renderModal()">
-  <div id="modal-summary" style="display:none" class="realisasi-sum">
-    <div class="grid3" style="margin-bottom:8px">
-      <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:var(--red)" id="ms-total">0</div><div style="font-size:11px;color:var(--text2)">Total modal</div></div>
-      <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--green)" id="ms-pupuk">0</div><div style="font-size:11px;color:var(--text2)">Pupuk</div></div>
-      <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--badge-amber)" id="ms-herbisida">0</div><div style="font-size:11px;color:var(--text2)">Herbisida</div></div>
-    </div>
-    <div class="grid2">
-      <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--blue)" id="ms-pruning">0</div><div style="font-size:11px;color:var(--text2)">Pruning</div></div>
-      <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--orange)" id="ms-tenaga">0</div><div style="font-size:11px;color:var(--text2)">Tenaga Kerja</div></div>
-    </div>
+  <div class="metric-row-2">
+    <div class="metric"><div class="metric-val" id="mb-pruning" style="font-size:15px;color:var(--blue)">-</div><div class="metric-lbl">Pruning</div></div>
+    <div class="metric"><div class="metric-val" id="mb-tenaga" style="font-size:15px;color:var(--orange)">-</div><div class="metric-lbl">Tenaga Kerja</div></div>
+  </div>
+
+  <div class="section-lbl" style="margin-top:8px">Proporsi biaya per kategori</div>
+  <div class="card" style="padding:12px">
+    <div style="position:relative;height:200px"><canvas id="chart-biaya-donat"></canvas></div>
+  </div>
+
+  <div class="section-lbl" style="margin-top:4px">Tren biaya 6 bulan terakhir</div>
+  <div class="card" style="padding:12px">
+    <div style="position:relative;height:180px"><canvas id="chart-biaya-tren"></canvas></div>
+  </div>
+
+  <div class="section-lbl" style="margin-top:4px">Biaya per lahan</div>
+  <div id="mb-per-lahan"></div>
+
+  <div class="section-lbl" style="margin-top:4px">Riwayat biaya</div>
+  <div class="filter-row" id="mb-filter-row">
+    <button class="filter-btn active" onclick="filterBiaya('',this)">Semua</button>
+    <button class="filter-btn" onclick="filterBiaya('Pupuk',this)">Pupuk</button>
+    <button class="filter-btn" onclick="filterBiaya('Herbisida',this)">Herbisida</button>
+    <button class="filter-btn" onclick="filterBiaya('Pruning',this)">Pruning</button>
+    <button class="filter-btn" onclick="filterBiaya('Tenaga Kerja',this)">Tenaga Kerja</button>
   </div>
   <div id="list-modal"><div class="loading">Memuat...</div></div>
 </div>
@@ -694,7 +683,7 @@ const reloadTable=async(table)=>{
 /* ===== INIT ===== */
 const refreshSelects=()=>{
   LAHAN_NAMES=cache.lahan.map(l=>l.nama);
-  ['l-nama','rea-lahan','mod-lahan','jdw-lahan'].forEach(id=>{
+  ['l-nama','rea-lahan','jdw-lahan'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const cur=el.value;
     el.innerHTML='<option value="">-- pilih --</option>'+LAHAN_NAMES.map(n=>`<option value="${n}">${n}</option>`).join('');
@@ -716,21 +705,13 @@ const refreshSelects=()=>{
 
 const initApp=()=>{
   // Tanggal default
-  ['rea-tanggal','mod-tanggal','jdw-terakhir','fp-tanggal'].forEach(id=>{
+  ['rea-tanggal','jdw-terakhir','fp-tanggal'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value=todayStr();
   });
   updateDetailJadwal();
   document.getElementById('jdw-terakhir').addEventListener('change',hitungDueDate);
   updateJenisModal();
   // Kalkulasi total modal otomatis
-  ['mod-jumlah','mod-harga'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el)el.addEventListener('input',()=>{
-      const j=parseFloat(document.getElementById('mod-jumlah').value)||0;
-      const h=parseInt(document.getElementById('mod-harga').value)||0;
-      document.getElementById('mod-total').value=Math.round(j*h);
-    });
-  });
   initRekapFilter();
   initSwipe();
   loadAll();
@@ -1417,41 +1398,83 @@ const batalEditModal=()=>{
   document.getElementById('mod-save-btn').style.background='var(--green)';
   document.getElementById('mod-edit-info').style.display='none';
 };
-const filterModal=(lahan,kat,btn)=>{
-  filterModalLahan=lahan;filterModalKat=kat;
-  document.querySelectorAll('#p-modal .filter-row .filter-btn').forEach(b=>b.classList.remove('active'));
+let filterBiayaKat='';
+const filterBiaya=(kat,btn)=>{
+  filterBiayaKat=kat;
+  document.querySelectorAll('#mb-filter-row .filter-btn').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
   renderModal();
 };
+// alias lama tetap ada agar tidak error
+const filterModal=(l,k,btn)=>filterBiaya(k,btn);
+
+let chartBiayaDonat=null,chartBiayaTren=null;
 const renderModal=()=>{
-  const search=(document.getElementById('mod-search')?.value||'').toLowerCase();
-  let data=cache.modal;
-  if(filterModalLahan)data=data.filter(m=>m.lahan===filterModalLahan);
-  if(filterModalKat)data=data.filter(m=>m.kategori===filterModalKat);
-  if(search)data=data.filter(m=>m.lahan.toLowerCase().includes(search)||m.jenis.toLowerCase().includes(search)||(m.keterangan||'').toLowerCase().includes(search));
+  const now=new Date();
+  const bulanNow=now.getMonth()+1;
+  const tahunNow=now.getFullYear();
   const totP=cache.modal.filter(m=>m.kategori==='Pupuk').reduce((a,m)=>a+(m.total||0),0);
   const totH=cache.modal.filter(m=>m.kategori==='Herbisida').reduce((a,m)=>a+(m.total||0),0);
   const totPr=cache.modal.filter(m=>m.kategori==='Pruning').reduce((a,m)=>a+(m.total||0),0);
   const totTK=cache.modal.filter(m=>m.kategori==='Tenaga Kerja').reduce((a,m)=>a+(m.total||0),0);
-  const sum=document.getElementById('modal-summary');
-  if(cache.modal.length){
-    sum.style.display='block';
-    document.getElementById('ms-total').textContent=fmtK(totP+totH+totPr+totTK);
-    document.getElementById('ms-pupuk').textContent=fmtK(totP);
-    document.getElementById('ms-herbisida').textContent=fmtK(totH);
-    document.getElementById('ms-pruning').textContent=fmtK(totPr);
-    document.getElementById('ms-tenaga').textContent=fmtK(totTK);
-  } else sum.style.display='none';
-  if(!data.length){document.getElementById('list-modal').innerHTML='<div class="empty">Belum ada data modal</div>';return;}
+  const totAll=totP+totH+totPr+totTK;
+  const totBulan=cache.modal.filter(m=>{
+    const d=new Date(m.tanggal);
+    return d.getMonth()+1===bulanNow&&d.getFullYear()===tahunNow;
+  }).reduce((a,m)=>a+(m.total||0),0);
+
+  document.getElementById('mb-total').textContent=fmtK(totAll);
+  document.getElementById('mb-bulan').textContent=fmtK(totBulan);
+  document.getElementById('mb-pupuk').textContent=fmtK(totP);
+  document.getElementById('mb-herbisida').textContent=fmtK(totH);
+  document.getElementById('mb-pruning').textContent=fmtK(totPr);
+  document.getElementById('mb-tenaga').textContent=fmtK(totTK);
+
+  // Biaya per lahan
+  const perLahan=LAHAN_NAMES.map(n=>({nama:n,tot:cache.modal.filter(m=>m.lahan===n).reduce((a,m)=>a+(m.total||0),0)})).filter(x=>x.tot>0).sort((a,b)=>b.tot-a.tot);
+  document.getElementById('mb-per-lahan').innerHTML=perLahan.length
+    ?perLahan.map(x=>`<div class="info-row"><span>${x.nama}</span><span style="color:var(--red);font-weight:600">${fmtK(x.tot)}</span></div>`).join('')
+    :'<div class="empty">Belum ada data biaya</div>';
+
+  // Grafik
+  loadChartJS(()=>{
+    const ctx1=document.getElementById('chart-biaya-donat');
+    if(ctx1){
+      if(chartBiayaDonat)chartBiayaDonat.destroy();
+      chartBiayaDonat=new Chart(ctx1,{
+        type:'doughnut',
+        data:{labels:['Pupuk','Herbisida','Pruning','Tenaga Kerja'],datasets:[{data:[totP,totH,totPr,totTK],backgroundColor:['#1D9E75','#BA7517','#185FA5','#E67E22'],borderWidth:2,borderColor:'transparent'}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:6}},tooltip:{callbacks:{label:ctx=>' '+fmtK(ctx.raw)}}}}
+      });
+    }
+    const ctx2=document.getElementById('chart-biaya-tren');
+    if(ctx2){
+      const labels=[],dataTren=[];
+      for(let i=5;i>=0;i--){
+        const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+        labels.push(MN[d.getMonth()]);
+        dataTren.push(cache.modal.filter(m=>{const md=new Date(m.tanggal);return md.getMonth()===d.getMonth()&&md.getFullYear()===d.getFullYear();}).reduce((a,m)=>a+(m.total||0),0));
+      }
+      if(chartBiayaTren)chartBiayaTren.destroy();
+      chartBiayaTren=new Chart(ctx2,{
+        type:'bar',
+        data:{labels,datasets:[{data:dataTren,backgroundColor:'#E24B4A',borderRadius:4,borderSkipped:false}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v>=1000000?(v/1000000).toFixed(1)+'jt':v>=1000?Math.round(v/1000)+'rb':v,font:{size:9}},grid:{color:'rgba(128,128,128,0.1)'}},x:{ticks:{font:{size:9}},grid:{display:false}}}}
+      });
+    }
+  });
+
+  // Riwayat
+  let data=filterBiayaKat?cache.modal.filter(m=>m.kategori===filterBiayaKat):cache.modal;
+  if(!data.length){document.getElementById('list-modal').innerHTML='<div class="empty">Belum ada data biaya</div>';return;}
   const kb={Pupuk:'b-green',Herbisida:'b-amber',Pruning:'b-blue','Tenaga Kerja':'b-orange'};
   document.getElementById('list-modal').innerHTML=data.map(m=>`<div class="item-card">
     <div class="item-title">${m.lahan} <span class="badge ${kb[m.kategori]||'b-gray'}">${m.kategori}</span></div>
     <div class="item-sub">${m.jenis} &nbsp;|&nbsp; ${m.tanggal}</div>
-    <div class="item-sub">${m.jumlah} ${m.satuan||''} × ${fmtRp(m.harga_satuan||0)} = <b style="color:var(--red)">${fmtRp(m.total||0)}</b></div>
+    <div class="item-sub">${m.jumlah||1} ${m.satuan||''} — <b style="color:var(--red)">${fmtRp(m.total||0)}</b></div>
     ${m.keterangan?`<div class="item-sub">${m.keterangan}</div>`:''}
     <div class="item-actions">
-      <button class="btn-sm btn-gray" onclick="editModal('${m.id}')">Edit</button>
-      <button class="btn-sm btn-red" onclick="hapusItem('modal','${m.id}','Hapus data modal ini?')">Hapus</button>
+      <button class="btn-sm btn-red" onclick="hapusItem('modal','${m.id}','Hapus data biaya ini?')">Hapus</button>
     </div>
   </div>`).join('');
 };
