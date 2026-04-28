@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v7.8</title>
+<title>Kebun Sawit v7.9</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -191,7 +191,7 @@ select:focus,input:focus{border-color:var(--green)}
     <button class="pin-btn del" onclick="pinDelete()">&#9003;</button>
   </div>
   <div class="pin-hint">Lupa PIN? Hubungi admin</div>
-  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 7.8</div>
+  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 7.9</div>
 </div>
 
 <!-- APP -->
@@ -202,7 +202,7 @@ select:focus,input:focus{border-color:var(--green)}
 </div>
 
 <div class="topbar">
-  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v7.8</span></h1>
+  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v7.9</span></h1>
   <div style="display:flex;align-items:center;gap:8px">
     <div id="conn-status" class="online-badge"><span class="dot-offline" id="conn-dot"></span><span id="conn-txt">Menghubungkan...</span></div>
     <button onclick="logout()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:20px;cursor:pointer">Kunci</button>
@@ -326,45 +326,6 @@ select:focus,input:focus{border-color:var(--green)}
   <div id="list-jadwal"><div class="loading">Memuat...</div></div>
 </div>
 
-<!-- REALISASI -->
-<div id="p-realisasi" class="panel">
-  <div class="card">
-    <div class="card-title">Input realisasi panen</div>
-    <div class="form-group"><label>Lahan</label><select id="rea-lahan"><option value="">-- pilih --</option></select></div>
-    <div class="form-group"><label>Tanggal panen</label><input type="date" id="rea-tanggal"></div>
-    <div class="grid2">
-      <div class="form-group"><label>Berat aktual (kg)</label><input type="number" id="rea-kg" placeholder="cth: 1200" min="0"></div>
-      <div class="form-group"><label>Harga aktual (Rp/kg)</label><input type="number" id="rea-harga" placeholder="cth: 2300"></div>
-    </div>
-    <div class="grid2">
-      <div class="form-group"><label>Upah panen (Rp/kg)</label><input type="number" id="rea-upah" placeholder="cth: 120" min="0"></div>
-      <div class="form-group"><label>Keterangan</label><input type="text" id="rea-ket" placeholder="cth: sortasi baik"></div>
-    </div>
-    <div class="edit-info" id="rea-edit-info">Mode edit aktif — perubahan menggantikan data lama.<button onclick="batalEditRealisasi()" style="float:right;background:none;border:none;color:var(--red);font-weight:700;font-size:13px;cursor:pointer">Batal</button></div>
-    <button id="rea-save-btn" class="btn btn-orange" onclick="simpanRealisasi()">Catat hasil panen</button>
-  </div>
-  <div id="rea-summary" class="realisasi-sum" style="display:none">
-    <div class="grid2" style="margin-bottom:8px">
-      <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:var(--green)" id="rs-kg">0</div><div style="font-size:11px;color:var(--text2)">Total kg</div></div>
-      <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:var(--blue)" id="rs-rot">0</div><div style="font-size:11px;color:var(--text2)">Rotasi</div></div>
-    </div>
-    <div class="grid3">
-      <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--orange)" id="rs-income">0</div><div style="font-size:11px;color:var(--text2)">Kotor</div></div>
-      <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--red)" id="rs-upah">0</div><div style="font-size:11px;color:var(--text2)">Total upah</div></div>
-      <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--green)" id="rs-bersih">0</div><div style="font-size:11px;color:var(--text2)">Bersih</div></div>
-    </div>
-  </div>
-  <input class="search-box" id="rea-search" placeholder="Cari lahan atau tanggal..." oninput="renderRealisasi()">
-  <div class="filter-row" id="rea-filter-row">
-    <button class="filter-btn active" onclick="filterRealisasi('',this)">Semua lahan</button>
-  </div>
-  <div class="form-group" style="margin-bottom:10px">
-    <select id="rea-bulan-filter" onchange="renderRealisasi()" style="padding:8px 10px;font-size:13px">
-      <option value="">Semua bulan</option>
-    </select>
-  </div>
-  <div id="list-realisasi"><div class="loading">Memuat...</div></div>
-</div>
 
 <!-- BIAYA -->
 <div id="p-modal" class="panel">
@@ -508,7 +469,7 @@ const TABS=['dashboard','jadwal','modal','rekap','lahan'];
 let LAHAN_NAMES=[];
 let CORRECT_PIN='';
 let cache={lahan:[],realisasi:[],modal:[],jadwal:[]};
-let filterReaLahan='', filterModalLahan='', filterModalKat='', filterJadwalMode='semua';
+let filterModalLahan='', filterModalKat='', filterJadwalMode='semua';
 let chartProduksi=null, chartDonat=null, chartUR=null;
 
 /* ===== UTILS ===== */
@@ -696,7 +657,7 @@ const refreshSelects=()=>{
 
 const initApp=()=>{
   // Tanggal default
-  ['rea-tanggal','jdw-terakhir','fp-tanggal'].forEach(id=>{
+  ['jdw-terakhir','fp-tanggal'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value=todayStr();
   });
   updateDetailJadwal();
@@ -1229,107 +1190,6 @@ const simpanPanenDariJadwal=async(jadwalId,lahan)=>{
     showToast('Panen '+lahan+' dicatat — jadwal berikutnya: '+nextStr);
   }catch(e){showToast('Gagal: '+e.message);}
 };
-let editReaId=null;
-const simpanRealisasi=async()=>{
-  const lahan=document.getElementById('rea-lahan').value;
-  if(!lahan){showToast('Pilih lahan');return;}
-  const tanggal=document.getElementById('rea-tanggal').value;
-  if(!tanggal){showToast('Isi tanggal panen');return;}
-  const kg=parseFloat(document.getElementById('rea-kg').value)||0;
-  const harga=parseInt(document.getElementById('rea-harga').value)||0;
-  const upah_panen=parseInt(document.getElementById('rea-upah').value)||0;
-  const pendapatan=Math.round(kg*harga);
-  const total_upah=Math.round(kg*upah_panen);
-  const pendapatan_bersih=pendapatan-total_upah;
-  const data={lahan,tanggal,kg_aktual:kg,harga_aktual:harga,upah_panen,total_upah,pendapatan,pendapatan_bersih,keterangan:document.getElementById('rea-ket').value};
-  try{
-    if(editReaId){
-      await sb('realisasi_panen','PATCH',data,'id=eq.'+editReaId);
-      showToast('Data panen diupdate');
-    } else {
-      await sb('realisasi_panen','POST',data);
-      // Auto-jadwal panen berikutnya
-      const nextDate=new Date(tanggal+'T00:00:00');
-      nextDate.setDate(nextDate.getDate()+ROTASI_PANEN);
-      const nextStr=nextDate.toISOString().slice(0,10);
-      const jadwalLama=cache.jadwal.filter(j=>j.lahan===lahan&&j.jenis==='Panen'&&j.status==='pending');
-      for(const j of jadwalLama)await sb('jadwal_aktif','DELETE',null,'id=eq.'+j.id);
-      await sb('jadwal_aktif','POST',{lahan,jenis:'Panen',detail:'Rotasi '+ROTASI_PANEN+' hari',tanggal_due:nextStr,interval_bulan:null,status:'pending',sumber:'auto'});
-      await reloadTable('jadwal_aktif');
-      showToast('Panen dicatat — jadwal berikutnya: '+nextStr);
-    }
-    await reloadTable('realisasi_panen');
-    renderRealisasi();renderDashboard();
-    batalEditRealisasi();
-  }catch(e){showToast('Gagal: '+e.message);}
-};
-const editRealisasi=id=>{
-  const r=cache.realisasi.find(x=>x.id===id);if(!r)return;
-  editReaId=id;
-  document.getElementById('rea-lahan').value=r.lahan;
-  document.getElementById('rea-tanggal').value=r.tanggal;
-  document.getElementById('rea-kg').value=r.kg_aktual||'';
-  document.getElementById('rea-harga').value=r.harga_aktual||'';
-  document.getElementById('rea-upah').value=r.upah_panen||'';
-  document.getElementById('rea-ket').value=r.keterangan||'';
-  document.getElementById('rea-save-btn').textContent='Update panen';
-  document.getElementById('rea-save-btn').style.background='var(--blue)';
-  document.getElementById('rea-edit-info').style.display='block';
-  window.scrollTo(0,0);
-};
-const batalEditRealisasi=()=>{
-  editReaId=null;
-  ['rea-kg','rea-harga','rea-upah','rea-ket'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('rea-lahan').value='';
-  document.getElementById('rea-tanggal').value=todayStr();
-  document.getElementById('rea-save-btn').textContent='Catat hasil panen';
-  document.getElementById('rea-save-btn').style.background='var(--orange)';
-  document.getElementById('rea-edit-info').style.display='none';
-};
-const filterRealisasi=(lahan,btn)=>{
-  filterReaLahan=lahan;
-  document.querySelectorAll('#rea-filter-row .filter-btn').forEach(b=>b.classList.remove('active'));
-  if(btn)btn.classList.add('active');
-  renderRealisasi();
-};
-const renderRealisasi=()=>{
-  const search=(document.getElementById('rea-search')?.value||'').toLowerCase();
-  const bulanFilter=parseInt(document.getElementById('rea-bulan-filter')?.value)||0;
-  let data=cache.realisasi;
-  if(filterReaLahan)data=data.filter(r=>r.lahan===filterReaLahan);
-  if(bulanFilter)data=data.filter(r=>new Date(r.tanggal).getMonth()+1===bulanFilter);
-  if(search)data=data.filter(r=>r.lahan.toLowerCase().includes(search)||r.tanggal.includes(search)||(r.keterangan||'').toLowerCase().includes(search));
-  const totalKg=data.reduce((a,r)=>a+(r.kg_aktual||0),0);
-  const totalIncome=data.reduce((a,r)=>a+(r.pendapatan||0),0);
-  const totalUpah=data.reduce((a,r)=>a+(r.total_upah||0),0);
-  const totalBersih=data.reduce((a,r)=>a+(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0),0);
-  const sum=document.getElementById('rea-summary');
-  if(data.length){
-    sum.style.display='block';
-    document.getElementById('rs-kg').textContent=fmt(totalKg)+' kg';
-    document.getElementById('rs-rot').textContent=data.length+'x';
-    document.getElementById('rs-income').textContent=fmtK(totalIncome);
-    document.getElementById('rs-upah').textContent=fmtK(totalUpah);
-    document.getElementById('rs-bersih').textContent=fmtK(totalBersih);
-  } else sum.style.display='none';
-  if(!data.length){document.getElementById('list-realisasi').innerHTML='<div class="empty">Belum ada data panen</div>';return;}
-  document.getElementById('list-realisasi').innerHTML=data.map(r=>{
-    const bersih=r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0;
-    const adaUpah=(r.upah_panen||0)>0;
-    return`<div class="item-card">
-      <div class="item-title">${r.lahan} <span style="font-weight:400;color:var(--text2);font-size:13px">${r.tanggal}</span></div>
-      <div class="item-sub"><b>${fmt(r.kg_aktual||0)} kg</b> &nbsp;|&nbsp; ${fmtRp(r.harga_aktual||0)}/kg</div>
-      ${adaUpah?`<div class="item-sub">Upah: ${fmtRp(r.upah_panen||0)}/kg &nbsp;|&nbsp; Total upah: <span style="color:var(--red)">${fmtK(r.total_upah||0)}</span></div>`:''}
-      <div class="item-sub">Kotor: <span style="color:var(--orange);font-weight:600">${fmtK(r.pendapatan||0)}</span>${adaUpah?` &nbsp;|&nbsp; Bersih: <span style="color:var(--green);font-weight:700">${fmtK(bersih)}</span>`:''}</div>
-      ${r.keterangan?`<div class="item-sub">${r.keterangan}</div>`:''}
-      <div class="item-actions">
-        <button class="btn-sm btn-gray" onclick="editRealisasi('${r.id}')">Edit</button>
-        <button class="btn-sm btn-red" onclick="hapusItem('realisasi_panen','${r.id}','Hapus data panen ini?')">Hapus</button>
-      </div>
-    </div>`;
-  }).join('');
-};
-
 /* ===== MODAL ===== */
 const JENIS_MODAL={
   Pupuk:['Urea (N)','MOP/KCl (K)','TSP/SP-36 (P)','Dolomit (Mg)','Borate (B)','NPK Majemuk','Kiserit','PKSC'],
