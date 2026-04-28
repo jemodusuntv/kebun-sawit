@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v7.9</title>
+<title>Kebun Sawit v8.0</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -191,7 +191,7 @@ select:focus,input:focus{border-color:var(--green)}
     <button class="pin-btn del" onclick="pinDelete()">&#9003;</button>
   </div>
   <div class="pin-hint">Lupa PIN? Hubungi admin</div>
-  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 7.9</div>
+  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 8.0</div>
 </div>
 
 <!-- APP -->
@@ -202,7 +202,7 @@ select:focus,input:focus{border-color:var(--green)}
 </div>
 
 <div class="topbar">
-  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v7.9</span></h1>
+  <h1>Kebun Sawit <span style="font-size:11px;opacity:0.7;font-weight:400">v8.0</span></h1>
   <div style="display:flex;align-items:center;gap:8px">
     <div id="conn-status" class="online-badge"><span class="dot-offline" id="conn-dot"></span><span id="conn-txt">Menghubungkan...</span></div>
     <button onclick="logout()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;padding:4px 10px;border-radius:20px;cursor:pointer">Kunci</button>
@@ -662,8 +662,6 @@ const initApp=()=>{
   });
   updateDetailJadwal();
   document.getElementById('jdw-terakhir').addEventListener('change',hitungDueDate);
-  updateJenisModal();
-  // Kalkulasi total modal otomatis
   initRekapFilter();
   initSwipe();
   loadAll();
@@ -1198,12 +1196,14 @@ const JENIS_MODAL={
   'Tenaga Kerja':['Tebas Rumput','Lainnya']
 };
 const updateJenisModal=()=>{
-  const kat=document.getElementById('mod-kategori').value;
+  const katEl=document.getElementById('mod-kategori');
+  if(!katEl)return;
+  const kat=katEl.value;
   const sel=document.getElementById('mod-jenis');
-  sel.innerHTML=(JENIS_MODAL[kat]||[]).map(j=>`<option>${j}</option>`).join('');
-  // Satuan otomatis per kategori
+  if(sel)sel.innerHTML=(JENIS_MODAL[kat]||[]).map(j=>`<option>${j}</option>`).join('');
   const satuan=kat==='Pupuk'?'kg':kat==='Herbisida'?'liter':kat==='Tenaga Kerja'?'HK':'HOK';
-  document.getElementById('mod-satuan').value=satuan;
+  const satuanEl=document.getElementById('mod-satuan');
+  if(satuanEl)satuanEl.value=satuan;
 };
 let editModalId=null;
 const simpanModal=async()=>{
