@@ -237,7 +237,7 @@ select:focus,input:focus{border-color:var(--green)}
   </div>
   <div class="card"><div class="card-title">Aktivitas bulan ini — <span id="d-bulan"></span></div><div id="d-aktivitas"><div class="loading">Memuat...</div></div></div>
   <div class="card">
-    <div class="card-title">Tren Untung/Rugi 6 Bulan Terakhir</div>
+    <div class="card-title">Tren Untung/Rugi 12 Bulan Terakhir</div>
     <div style="position:relative;height:180px"><canvas id="chart-ur-tren-dash"></canvas></div>
   </div>
   <button class="btn btn-blue" onclick="exportCSV()" style="margin-top:4px">Export semua data ke CSV</button>
@@ -863,7 +863,7 @@ const renderDashboard=()=>{
     if(ctx._chart)ctx._chart.destroy();
     const now=new Date();
     const labels=[],data=[];
-    for(let i=5;i>=0;i--){
+    for(let i=11;i>=0;i--){
       const d=new Date(now.getFullYear(),now.getMonth()-i,1);
       labels.push(MN[d.getMonth()]+' '+String(d.getFullYear()).slice(2));
       const rb=cache.realisasi.filter(r=>{const rd=parseDate(r.tanggal);return rd.getMonth()===d.getMonth()&&rd.getFullYear()===d.getFullYear();});
