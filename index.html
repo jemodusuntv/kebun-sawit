@@ -236,6 +236,10 @@ select:focus,input:focus{border-color:var(--green)}
     <div class="metric"><div class="metric-val" id="d-ur-bulan" style="font-size:16px">-</div><div class="metric-lbl" id="d-ur-bulan-lbl">Untung/Rugi bulan ini</div></div>
   </div>
   <div class="card"><div class="card-title">Aktivitas bulan ini — <span id="d-bulan"></span></div><div id="d-aktivitas"><div class="loading">Memuat...</div></div></div>
+  <div class="card">
+    <div class="card-title">Tren Untung/Rugi 6 Bulan Terakhir</div>
+    <div style="position:relative;height:180px"><canvas id="chart-ur-tren-dash"></canvas></div>
+  </div>
   <button class="btn btn-blue" onclick="exportCSV()" style="margin-top:4px">Export semua data ke CSV</button>
 </div>
 
@@ -852,6 +856,35 @@ const renderDashboard=()=>{
   document.getElementById('d-aktivitas').innerHTML=jadwalBulan.length
     ?jadwalBulan.map(j=>{const label=j.jenis==='Panen'?'Panen':j.detail||j.jenis;return`<div class="info-row"><span>${j.lahan} — ${label}</span><span class="badge ${jColor[j.jenis]||'b-gray'}">${j.jenis}</span></div>`;}).join('')
     :'<div class="empty">Tidak ada jadwal bulan ini</div>';
+
+  loadChartJS(()=>{
+    const ctx=document.getElementById('chart-ur-tren-dash');
+    if(!ctx)return;
+    if(ctx._chart)ctx._chart.destroy();
+    const now=new Date();
+    const labels=[],data=[];
+    for(let i=5;i>=0;i--){
+      const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+      labels.push(MN[d.getMonth()]+' '+String(d.getFullYear()).slice(2));
+      const rb=cache.realisasi.filter(r=>{const rd=parseDate(r.tanggal);return rd.getMonth()===d.getMonth()&&rd.getFullYear()===d.getFullYear();});
+      const mb=cache.modal.filter(m=>{const md=parseDate(m.tanggal);return md.getMonth()===d.getMonth()&&md.getFullYear()===d.getFullYear();});
+      const bersih=rb.reduce((a,r)=>a+(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0),0);
+      const modal=mb.reduce((a,m)=>a+(m.total||0),0);
+      data.push(Math.round(bersih-modal));
+    }
+    ctx._chart=new Chart(ctx,{
+      type:'bar',
+      data:{labels,datasets:[{data,backgroundColor:data.map(v=>v>=0?'#1D9E75':'#E24B4A'),borderRadius:4,borderSkipped:false}]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+(c.raw>=0?'Untung ':'Rugi ')+fmtK(Math.abs(c.raw))}}},
+        scales:{
+          y:{ticks:{callback:v=>v>=1000000?(v/1000000).toFixed(1)+'jt':v>=1000?Math.round(v/1000)+'rb':v,font:{size:9}},grid:{color:'rgba(128,128,128,0.1)'}},
+          x:{ticks:{font:{size:9}},grid:{display:false}}
+        }
+      }
+    });
+  });
 };
 
 /* ===== CHARTS ===== */
