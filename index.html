@@ -374,27 +374,14 @@ select:focus,input:focus{border-color:var(--green)}
 
 <!-- REKAP -->
 <div id="p-rekap" class="panel">
-  <div class="section-lbl">Rekap per bulan</div>
   <div style="display:flex;gap:8px;margin-bottom:10px">
     <select id="rek-tahun" onchange="renderRekap()" style="flex:1;padding:9px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--input);color:var(--text);font-size:14px"></select>
     <select id="rek-lahan-filter" onchange="renderRekap()" style="flex:1;padding:9px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--input);color:var(--text);font-size:14px">
       <option value="">Semua lahan</option>
     </select>
   </div>
-  <div id="rekap-bulanan"><div class="loading">Memuat...</div></div>
-  <div class="section-lbl" style="margin-top:16px">Tren Untung/Rugi Bulanan — <span id="rek-ur-tren-label"></span></div>
-  <div class="card" style="padding:12px">
-    <div style="position:relative;height:200px"><canvas id="chart-ur-tren" role="img" aria-label="Grafik tren untung rugi bulanan"></canvas></div>
-  </div>
-  <div class="section-lbl" style="margin-top:16px">Untung / Rugi per lahan</div>
-  <div id="rekap-ur"></div>
-  <div class="section-lbl" style="margin-top:16px">Perbandingan Modal vs Pendapatan per Lahan — <span id="rek-compare-yr"></span></div>
-  <div class="card" style="padding:12px">
-    <div style="position:relative" id="chart-compare-wrap"><canvas id="chart-compare" role="img" aria-label="Perbandingan modal vs pendapatan per lahan"></canvas></div>
-  </div>
-  <div class="section-lbl" style="margin-top:4px">Detail per Lahan per Bulan — <span id="rek-detail-label"></span></div>
-  <div id="rekap-detail-lahan"></div>
-  <div class="section-lbl" style="margin-top:16px">Ringkasan keseluruhan</div>
+
+  <div class="section-lbl" style="margin-top:0">Ringkasan keseluruhan</div>
   <div class="metric-row-2">
     <div class="metric"><div class="metric-val" id="rek-kg-total" style="font-size:18px">-</div><div class="metric-lbl">Total kg dipanen</div></div>
     <div class="metric"><div class="metric-val" id="rek-income-total" style="font-size:18px;color:var(--orange)">-</div><div class="metric-lbl">Pendapatan bersih</div></div>
@@ -403,6 +390,29 @@ select:focus,input:focus{border-color:var(--green)}
     <div class="metric"><div class="metric-val" id="rek-modal-total" style="font-size:18px;color:var(--red)">-</div><div class="metric-lbl">Total modal</div></div>
     <div class="metric"><div class="metric-val" id="rek-ur-total" style="font-size:18px">-</div><div class="metric-lbl" id="rek-ur-lbl">Untung/Rugi</div></div>
   </div>
+
+  <div class="section-lbl" style="margin-top:16px">Tren produksi — <span id="rek-tren-label"></span></div>
+  <div class="card" style="padding:12px">
+    <div style="position:relative;height:200px"><canvas id="chart-rekap-produksi"></canvas></div>
+  </div>
+
+  <div class="section-lbl" style="margin-top:4px">Perbandingan Modal vs Pendapatan per Lahan — <span id="rek-compare-yr"></span></div>
+  <div class="card" style="padding:12px">
+    <div style="position:relative" id="chart-compare-wrap"><canvas id="chart-compare" role="img" aria-label="Perbandingan modal vs pendapatan per lahan"></canvas></div>
+  </div>
+
+  <div class="section-lbl" style="margin-top:4px">Tren Untung/Rugi Bulanan — <span id="rek-ur-tren-label"></span></div>
+  <div class="card" style="padding:12px">
+    <div style="position:relative;height:200px"><canvas id="chart-ur-tren" role="img" aria-label="Grafik tren untung rugi bulanan"></canvas></div>
+  </div>
+
+  <div class="section-lbl" style="margin-top:16px">Rekap per bulan</div>
+  <div id="rekap-bulanan"><div class="loading">Memuat...</div></div>
+
+  <div class="section-lbl" style="margin-top:16px">Untung / Rugi per lahan</div>
+  <div id="rekap-ur"></div>
+  <div class="section-lbl" style="margin-top:4px">Detail per Lahan per Bulan — <span id="rek-detail-label"></span></div>
+  <div id="rekap-detail-lahan"></div>
 
   <div class="section-lbl" style="margin-top:16px">Rata-rata per panen</div>
   <div class="metric-row-2" id="rek-rata2">
@@ -414,12 +424,7 @@ select:focus,input:focus{border-color:var(--green)}
     <div class="metric"><div class="metric-val" id="rek-tot-panen" style="font-size:16px;color:var(--blue)">-</div><div class="metric-lbl">Total rotasi panen</div></div>
   </div>
 
-  <div class="section-lbl" style="margin-top:16px">Tren produksi — <span id="rek-tren-label"></span></div>
-  <div class="card" style="padding:12px">
-    <div style="position:relative;height:200px"><canvas id="chart-rekap-produksi"></canvas></div>
-  </div>
-
-  <div class="section-lbl" style="margin-top:4px">Perbandingan tahun ini vs tahun lalu</div>
+  <div class="section-lbl" style="margin-top:16px">Perbandingan tahun ini vs tahun lalu</div>
   <div class="card">
     <div id="rek-compare"><div class="loading">Memuat...</div></div>
   </div>
