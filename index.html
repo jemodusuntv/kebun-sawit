@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v8.2</title>
+<title>Kebun Sawit v8.3</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -1076,11 +1076,20 @@ const tandaiSelesai=async id=>{
     await sb('jadwal_aktif','PATCH',{status:'selesai'},'id=eq.'+id);
     if(j.interval_bulan){
       const nd=new Date();nd.setMonth(nd.getMonth()+parseInt(j.interval_bulan));
-      await simpanJadwal(j.lahan,j.jenis,j.detail,nd.toISOString().slice(0,10),j.interval_bulan,'auto');
+      const ndStr=nd.toISOString().slice(0,10);
+      // Cari jadwal pending yang sama persis (lahan + jenis + detail), selain yang baru diselesaikan
+      const existing=cache.jadwal.find(x=>x.id!==id&&x.status==='pending'&&x.lahan===j.lahan&&x.jenis===j.jenis&&x.detail===j.detail);
+      if(existing){
+        // Pupuk sama sudah ada jadwalnya → geser tanggalnya saja, jangan buat baru
+        await sb('jadwal_aktif','PATCH',{tanggal_due:ndStr},'id=eq.'+existing.id);
+      }else{
+        // Belum ada jadwal pending untuk pupuk ini → buat baru
+        await simpanJadwal(j.lahan,j.jenis,j.detail,ndStr,j.interval_bulan,'auto');
+      }
     }
     await reloadTable('jadwal_aktif');
     renderJadwal();renderDashboard();
-    showToast('Selesai'+(j.interval_bulan?' — jadwal berikutnya dibuat':''));
+    showToast('Selesai'+(j.interval_bulan?' — jadwal berikutnya diperbarui':''));
   }catch(e){showToast('Gagal');}
 };
 const filterJadwal=(mode,btn)=>{
