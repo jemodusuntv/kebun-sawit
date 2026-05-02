@@ -382,6 +382,10 @@ select:focus,input:focus{border-color:var(--green)}
     </select>
   </div>
   <div id="rekap-bulanan"><div class="loading">Memuat...</div></div>
+  <div class="section-lbl" style="margin-top:16px">Tren Untung/Rugi Bulanan — <span id="rek-ur-tren-label"></span></div>
+  <div class="card" style="padding:12px">
+    <div style="position:relative;height:200px"><canvas id="chart-ur-tren" role="img" aria-label="Grafik tren untung rugi bulanan"></canvas></div>
+  </div>
   <div class="section-lbl" style="margin-top:16px">Untung / Rugi per lahan</div>
   <div id="rekap-ur"></div>
   <div class="section-lbl" style="margin-top:16px">Perbandingan Modal vs Pendapatan per Lahan — <span id="rek-compare-yr"></span></div>
@@ -1412,6 +1416,48 @@ const renderRekap=()=>{
     </div>`;
   }).filter(Boolean);
   document.getElementById('rekap-bulanan').innerHTML=bulanRows.length?bulanRows.join(''):'<div class="empty">Belum ada data di tahun '+tahun+'</div>';
+
+  // ===== TREN U/R BULANAN =====
+  document.getElementById('rek-ur-tren-label').textContent=tahun;
+  const urTrenData=MN.map((_,i)=>{
+    const bln=i+1;
+    const rb=rea.filter(r=>new Date(r.tanggal).getMonth()+1===bln);
+    const mb=mod.filter(m=>new Date(m.tanggal).getMonth()+1===bln);
+    const bersih=rb.reduce((a,r)=>a+(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0),0);
+    const modal=mb.reduce((a,m)=>a+(m.total||0),0);
+    return Math.round(bersih-modal);
+  });
+  loadChartJS(()=>{
+    const ctx=document.getElementById('chart-ur-tren');
+    if(!ctx)return;
+    if(ctx._chart)ctx._chart.destroy();
+    ctx._chart=new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:MN,
+        datasets:[{
+          data:urTrenData,
+          backgroundColor:urTrenData.map(v=>v>=0?'#1D9E75':'#E24B4A'),
+          borderRadius:4,
+          borderSkipped:false
+        }]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:ctx=>' '+(ctx.raw>=0?'Untung ':'Rugi ')+fmtK(Math.abs(ctx.raw))}}
+        },
+        scales:{
+          y:{
+            ticks:{callback:v=>v>=1000000?(v/1000000).toFixed(1)+'jt':v>=1000?Math.round(v/1000)+'rb':v,font:{size:9}},
+            grid:{color:'rgba(128,128,128,0.1)'}
+          },
+          x:{ticks:{font:{size:9}},grid:{display:false}}
+        }
+      }
+    });
+  });
 
   // Ringkasan keseluruhan (semua tahun, filter lahan)
   const reaAll=cache.realisasi.filter(r=>!lahanFilter||r.lahan===lahanFilter);
