@@ -1150,10 +1150,6 @@ const renderJadwal=()=>{
       </div>
       <div class="item-actions">
         <button class="btn-sm btn-gray" onclick="togglePane('jview-${j.id}')">Lihat</button>
-        ${isPanen&&!selesai
-          ?``
-          :!selesai?`<button class="btn-sm btn-green" onclick="tandaiSelesai('${j.id}')">Selesai</button>`:''
-        }
         <button class="btn-sm btn-red" onclick="hapusItem('jadwal_aktif','${j.id}','Hapus jadwal ini?')">Hapus</button>
       </div>
       <div id="jview-${j.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;font-size:13px">
