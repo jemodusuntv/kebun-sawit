@@ -279,11 +279,7 @@ select:focus,input:focus{border-color:var(--green)}
       <div class="form-group"><label>Tanggal terakhir dilakukan</label><input type="date" id="jdw-terakhir"></div>
       <div class="grid2">
         <div class="form-group"><label>Interval (bulan) — otomatis</label><input type="number" id="jdw-interval" readonly style="background:var(--bg3);color:var(--green);font-weight:700"></div>
-        <div class="form-group">
-          <label>Jatuh tempo (otomatis)</label>
-          <input type="text" id="jdw-due-preview" readonly style="background:var(--bg3);color:var(--orange);font-weight:700" placeholder="—">
-          <input type="date" id="jdw-due-edit" style="display:none;margin-top:4px">
-        </div>
+        <div class="form-group"><label>Jatuh tempo (otomatis)</label><input type="text" id="jdw-due-preview" readonly style="background:var(--bg3);color:var(--orange);font-weight:700" placeholder="—"></div>
       </div>
       <!-- Form biaya — muncul kalau pilih Pruning, Herbisida, atau Pupuk -->
       <div id="form-kegiatan-biaya" style="display:none;background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:8px">
@@ -302,11 +298,7 @@ select:focus,input:focus{border-color:var(--green)}
         </div>
         <div class="form-group"><label>Keterangan</label><input type="text" id="jdw-kegiatan-ket" placeholder="cth: 3 orang, 2 hari"></div>
       </div>
-      <div id="jdw-edit-info" style="display:none;background:var(--badge-blue-bg);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13px;color:var(--badge-blue)">Mode edit — mengubah jadwal yang dipilih</div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-green" id="jdw-save-btn" onclick="simpanJadwalForm()" style="flex:1">Simpan jadwal</button>
-        <button class="btn btn-gray" id="jdw-batal-btn" onclick="batalEditJadwal()" style="display:none;flex:0 0 auto;padding:13px 16px">Batal</button>
-      </div>
+      <button class="btn btn-green" onclick="simpanJadwalForm()">Simpan jadwal</button>
     </div>
   </div>
   <div class="filter-row" id="jdw-filter-row">
@@ -1033,44 +1025,34 @@ const simpanJadwal=async(lahan,jenis,detail,due,interval,sumber='manual')=>{
 const simpanJadwalForm=async()=>{
   const lahan=document.getElementById('jdw-lahan').value;
   if(!lahan){showToast('Pilih lahan');return;}
-  const isEdit=!!editJadwalId;
   const terakhir=document.getElementById('jdw-terakhir').value;
-  if(!isEdit&&!terakhir){showToast('Isi tanggal terakhir dilakukan');return;}
-  const due=isEdit
-    ?document.getElementById('jdw-due-edit').value
-    :document.getElementById('jdw-due-preview').value;
+  if(!terakhir){showToast('Isi tanggal terakhir dilakukan');return;}
+  const due=document.getElementById('jdw-due-preview').value;
   if(!due||due==='—'){showToast('Pilih detail kegiatan dulu');return;}
   const jenis=document.getElementById('jdw-jenis').value;
   const detail=document.getElementById('jdw-detail').value||jenis;
   const interval=document.getElementById('jdw-interval').value;
   const katMap={Herbisida:'Herbisida',Pupuk:'Pupuk',Pruning:'Pruning'};
   try{
-    if(isEdit){
-      await sb('jadwal_aktif','PATCH',{tanggal_due:due,detail,interval_bulan:parseInt(interval)||null},'id=eq.'+editJadwalId);
-      showToast('Jadwal diperbarui');
-      batalEditJadwal();
+    await simpanJadwal(lahan,jenis,detail,due,interval,'manual');
+    const biaya=parseInt(document.getElementById('jdw-kegiatan-biaya').value)||0;
+    const ket=document.getElementById('jdw-kegiatan-ket').value;
+    const satuan=document.getElementById('jdw-kegiatan-satuan').value;
+    if(biaya>0&&katMap[jenis]){
+      await sb('modal','POST',{lahan,kategori:katMap[jenis],jenis:detail,tanggal:terakhir,jumlah:1,satuan,harga_satuan:biaya,total:biaya,keterangan:ket});
+      await reloadTable('modal');
+      showToast('Jadwal + biaya '+jenis+' tersimpan');
     } else {
-      await simpanJadwal(lahan,jenis,detail,due,interval,'manual');
-      // Simpan biaya ke modal kalau diisi
-      const biaya=parseInt(document.getElementById('jdw-kegiatan-biaya').value)||0;
-      const ket=document.getElementById('jdw-kegiatan-ket').value;
-      const satuan=document.getElementById('jdw-kegiatan-satuan').value;
-      if(biaya>0&&katMap[jenis]){
-        await sb('modal','POST',{lahan,kategori:katMap[jenis],jenis:detail,tanggal:terakhir,jumlah:1,satuan,harga_satuan:biaya,total:biaya,keterangan:ket});
-        await reloadTable('modal');
-        showToast('Jadwal + biaya '+jenis+' tersimpan');
-      } else {
-        showToast('Jadwal ditambahkan — jatuh tempo: '+due);
-      }
-      document.getElementById('jdw-kegiatan-biaya').value='';
-      document.getElementById('jdw-kegiatan-ket').value='';
-      document.getElementById('jdw-terakhir').value=todayStr();
-      document.getElementById('jdw-due-preview').value='—';
-      document.getElementById('jdw-lahan').value='';
-      updateDetailJadwal();
+      showToast('Jadwal ditambahkan — jatuh tempo: '+due);
     }
+    document.getElementById('jdw-kegiatan-biaya').value='';
+    document.getElementById('jdw-kegiatan-ket').value='';
     await reloadTable('jadwal_aktif');
     renderJadwal();renderDashboard();
+    document.getElementById('jdw-terakhir').value=todayStr();
+    document.getElementById('jdw-due-preview').value='—';
+    document.getElementById('jdw-lahan').value='';
+    updateDetailJadwal();
   }catch(e){showToast('Gagal: '+e.message);}
 };
 const tandaiSelesai=async id=>{
@@ -1095,42 +1077,9 @@ const tandaiSelesai=async id=>{
     showToast('Selesai'+(j.interval_bulan?' — jadwal berikutnya diperbarui':''));
   }catch(e){showToast('Gagal');}
 };
-let editJadwalId=null;
-const togglePane=(showId,hideId)=>{
-  if(hideId){const hide=document.getElementById(hideId);if(hide)hide.style.display='none';}
+const togglePane=(showId)=>{
   const show=document.getElementById(showId);
   if(show)show.style.display=show.style.display==='none'?'block':'none';
-};
-const isiEditJadwal=id=>{
-  const j=cache.jadwal.find(x=>x.id===id);if(!j)return;
-  editJadwalId=id;
-  document.getElementById('jdw-lahan').value=j.lahan;
-  document.getElementById('jdw-jenis').value=j.jenis;
-  updateDetailJadwal();
-  setTimeout(()=>{
-    if(j.detail)document.getElementById('jdw-detail').value=j.detail;
-    document.getElementById('jdw-interval').value=j.interval_bulan||'';
-  },0);
-  document.getElementById('jdw-due-preview').style.display='none';
-  const dueEdit=document.getElementById('jdw-due-edit');
-  dueEdit.style.display='';dueEdit.value=j.tanggal_due;
-  const btn=document.getElementById('jdw-save-btn');
-  btn.textContent='Update jadwal';btn.style.background='var(--blue)';
-  document.getElementById('jdw-batal-btn').style.display='';
-  document.getElementById('jdw-edit-info').style.display='block';
-  window.scrollTo(0,0);
-};
-const batalEditJadwal=()=>{
-  editJadwalId=null;
-  document.getElementById('jdw-due-preview').style.display='';
-  document.getElementById('jdw-due-edit').style.display='none';
-  const btn=document.getElementById('jdw-save-btn');
-  btn.textContent='Simpan jadwal';btn.style.background='var(--green)';
-  document.getElementById('jdw-batal-btn').style.display='none';
-  document.getElementById('jdw-edit-info').style.display='none';
-  document.getElementById('jdw-lahan').value='';
-  document.getElementById('jdw-due-preview').value='—';
-  updateDetailJadwal();
 };
 const filterJadwal=(mode,btn)=>{
   filterJadwalMode=mode;
@@ -1201,7 +1150,6 @@ const renderJadwal=()=>{
       </div>
       <div class="item-actions">
         <button class="btn-sm btn-gray" onclick="togglePane('jview-${j.id}')">Lihat</button>
-        ${!selesai?`<button class="btn-sm btn-blue" onclick="isiEditJadwal('${j.id}')">Edit</button>`:''}
         ${isPanen&&!selesai
           ?``
           :!selesai?`<button class="btn-sm btn-green" onclick="tandaiSelesai('${j.id}')">Selesai</button>`:''
@@ -1209,19 +1157,11 @@ const renderJadwal=()=>{
         <button class="btn-sm btn-red" onclick="hapusItem('jadwal_aktif','${j.id}','Hapus jadwal ini?')">Hapus</button>
       </div>
       <div id="jview-${j.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;font-size:13px">
-        <div class="info-row"><span style="color:var(--text2)">Lahan</span><span>${j.lahan}</span></div>
-        <div class="info-row"><span style="color:var(--text2)">Jenis</span><span>${j.jenis}</span></div>
-        <div class="info-row"><span style="color:var(--text2)">Detail</span><span>${j.detail||'—'}</span></div>
-        <div class="info-row"><span style="color:var(--text2)">Jatuh tempo</span><span style="font-weight:700">${j.tanggal_due}</span></div>
-        <div class="info-row"><span style="color:var(--text2)">Interval</span><span>${j.interval_bulan?j.interval_bulan+' bulan':'—'}</span></div>
-        <div class="info-row" style="${lastPanen?'':'border:none'}"><span style="color:var(--text2)">Status</span><span class="badge ${selesai?'b-gray':st.cls}">${j.status}</span></div>
-        ${lastPanen?`<div style="background:var(--badge-green-bg);border-radius:8px;padding:8px 10px;margin-top:6px">
-          <div style="font-size:11px;font-weight:700;color:var(--badge-green);margin-bottom:4px">Panen terakhir</div>
-          <div class="info-row" style="padding:3px 0"><span style="color:var(--text2)">Tanggal</span><span style="font-weight:600">${lastPanen.tanggal}</span></div>
-          <div class="info-row" style="padding:3px 0"><span style="color:var(--text2)">Hasil</span><span style="font-weight:700;color:var(--green)">${fmt(lastPanen.kg_aktual)} kg</span></div>
-          <div class="info-row" style="padding:3px 0"><span style="color:var(--text2)">Harga</span><span>Rp ${fmt(lastPanen.harga_aktual)}/kg</span></div>
-          <div class="info-row" style="padding:3px 0;border:none"><span style="color:var(--text2)">Pendapatan bersih</span><span style="color:var(--orange);font-weight:600">${fmtK(lastPanen.pendapatan_bersih!=null?lastPanen.pendapatan_bersih:lastPanen.pendapatan)}</span></div>
-        </div>`:''}
+        ${lastPanen?`
+          <div class="info-row"><span style="color:var(--text2)">Tanggal panen</span><span style="font-weight:600">${lastPanen.tanggal}</span></div>
+          <div class="info-row"><span style="color:var(--text2)">Hasil</span><span style="font-weight:700;color:var(--green)">${fmt(lastPanen.kg_aktual)} kg</span></div>
+          <div class="info-row" style="border:none"><span style="color:var(--text2)">Pendapatan bersih</span><span style="color:var(--orange);font-weight:600">${fmtK(lastPanen.pendapatan_bersih!=null?lastPanen.pendapatan_bersih:lastPanen.pendapatan)}</span></div>
+        `:'<div style="color:var(--text3);font-size:13px">Belum ada data panen</div>'}
       </div>
       ${formPanen}
     </div>`;
