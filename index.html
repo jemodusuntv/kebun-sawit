@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v8.6</title>
+<title>Kebun Sawit v8.7</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -177,7 +177,7 @@ textarea:focus{border-color:var(--green)}
     <button class="pin-btn del" onclick="pinDelete()">&#9003;</button>
   </div>
   <div class="pin-hint">Lupa PIN? Hubungi admin</div>
-  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 8.6</div>
+  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 8.7</div>
 </div>
 
 <div id="app-main" class="app-hidden">
@@ -248,11 +248,16 @@ textarea:focus{border-color:var(--green)}
     <div id="form-panen-inline" style="display:block">
       <div class="grid2">
         <div class="form-group"><label>Tanggal panen</label><input type="date" id="fp-tanggal"></div>
-        <div class="form-group"><label>Berat aktual (kg)</label><input type="number" id="fp-kg" placeholder="cth: 1200" min="0"></div>
+        <div class="form-group"><label>Berat aktual (kg)</label><input type="number" id="fp-kg" placeholder="cth: 1200" min="0" oninput="hitungPreviewPanen()"></div>
       </div>
       <div class="grid2">
-        <div class="form-group"><label>Harga aktual (Rp/kg)</label><input type="number" id="fp-harga" placeholder="cth: 2300"></div>
-        <div class="form-group"><label>Upah panen (Rp/kg)</label><input type="number" id="fp-upah" placeholder="cth: 120" min="0"></div>
+        <div class="form-group"><label>Harga aktual (Rp/kg)</label><input type="number" id="fp-harga" placeholder="cth: 2300" oninput="hitungPreviewPanen()"></div>
+        <div class="form-group"><label>Upah panen (Rp/kg)</label><input type="number" id="fp-upah" placeholder="cth: 120" min="0" oninput="hitungPreviewPanen()"></div>
+      </div>
+      <div id="fp-preview" style="display:none;background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px">
+        <div class="info-row"><span style="color:var(--text2)">Total upah</span><span style="color:var(--red);font-weight:700" id="fp-prev-upah">-</span></div>
+        <div class="info-row"><span style="color:var(--text2)">Pendapatan kotor</span><span style="color:var(--orange);font-weight:700" id="fp-prev-kotor">-</span></div>
+        <div class="info-row" style="border:none"><span style="font-weight:700">Pendapatan bersih</span><span style="color:var(--green);font-weight:700" id="fp-prev-bersih">-</span></div>
       </div>
       <div class="form-group"><label>Keterangan</label><input type="text" id="fp-ket" placeholder="cth: sortasi baik"></div>
       <button class="btn btn-green" onclick="simpanPanenInline()">🌿 Simpan hasil panen</button>
@@ -714,6 +719,7 @@ const simpanPanenInline=async()=>{
     await reloadTable('realisasi_panen');await reloadTable('jadwal_aktif');renderJadwal();renderDashboard();
     ['fp-kg','fp-harga','fp-upah','fp-ket'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('fp-tanggal').value=todayStr();document.getElementById('jdw-lahan').value='';
+    const fpPrev=document.getElementById('fp-preview');if(fpPrev)fpPrev.style.display='none';
     showToast('Panen '+lahan+' dicatat — jadwal berikutnya: '+nextStr);
   }catch(e){showToast('Gagal: '+e.message);}
 };
@@ -771,11 +777,16 @@ const renderJadwal=()=>{
     const formPanen=isPanen&&!selesai?`<div id="form-panen-${j.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
       <div class="grid2" style="margin-bottom:8px">
         <div class="form-group" style="margin:0"><label>Tanggal panen</label><input type="date" id="fp-tgl-${j.id}" value="${todayStr()}"></div>
-        <div class="form-group" style="margin:0"><label>Berat aktual (kg)</label><input type="number" id="fp-kg-${j.id}" placeholder="cth: 1200" min="0"></div>
+        <div class="form-group" style="margin:0"><label>Berat aktual (kg)</label><input type="number" id="fp-kg-${j.id}" placeholder="cth: 1200" min="0" oninput="hitungPreviewPanenJdw('${j.id}')"></div>
       </div>
       <div class="grid2" style="margin-bottom:8px">
-        <div class="form-group" style="margin:0"><label>Harga aktual (Rp/kg)</label><input type="number" id="fp-harga-${j.id}" placeholder="cth: 2300"></div>
-        <div class="form-group" style="margin:0"><label>Upah panen (Rp/kg)</label><input type="number" id="fp-upah-${j.id}" placeholder="cth: 120" min="0"></div>
+        <div class="form-group" style="margin:0"><label>Harga aktual (Rp/kg)</label><input type="number" id="fp-harga-${j.id}" placeholder="cth: 2300" oninput="hitungPreviewPanenJdw('${j.id}')"></div>
+        <div class="form-group" style="margin:0"><label>Upah panen (Rp/kg)</label><input type="number" id="fp-upah-${j.id}" placeholder="cth: 120" min="0" oninput="hitungPreviewPanenJdw('${j.id}')"></div>
+      </div>
+      <div id="fp-preview-${j.id}" style="display:none;background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px">
+        <div class="info-row"><span style="color:var(--text2)">Total upah</span><span style="color:var(--red);font-weight:700" id="fp-prev-upah-${j.id}">-</span></div>
+        <div class="info-row"><span style="color:var(--text2)">Pendapatan kotor</span><span style="color:var(--orange);font-weight:700" id="fp-prev-kotor-${j.id}">-</span></div>
+        <div class="info-row" style="border:none"><span style="font-weight:700">Pendapatan bersih</span><span style="color:var(--green);font-weight:700" id="fp-prev-bersih-${j.id}">-</span></div>
       </div>
       <div class="form-group" style="margin-bottom:8px"><label>Keterangan</label><input type="text" id="fp-ket-${j.id}" placeholder="cth: sortasi baik"></div>
       <div style="display:flex;gap:8px">
@@ -818,6 +829,38 @@ const simpanPanenDariJadwal=async(jadwalId,lahan)=>{
     await reloadTable('realisasi_panen');await reloadTable('jadwal_aktif');renderJadwal();renderDashboard();
     showToast('Panen '+lahan+' dicatat — jadwal berikutnya: '+nextStr);
   }catch(e){showToast('Gagal: '+e.message);}
+};
+
+/* ===== KALKULASI PREVIEW PANEN ===== */
+const hitungPreviewPanen=()=>{
+  const kg=parseFloat(document.getElementById('fp-kg').value)||0;
+  const harga=parseInt(document.getElementById('fp-harga').value)||0;
+  const upah=parseInt(document.getElementById('fp-upah').value)||0;
+  const prev=document.getElementById('fp-preview');
+  if(!kg||!harga){prev.style.display='none';return;}
+  const kotor=Math.round(kg*harga);
+  const totalUpah=Math.round(kg*upah);
+  const bersih=kotor-totalUpah;
+  prev.style.display='block';
+  document.getElementById('fp-prev-upah').textContent=fmtRp(totalUpah);
+  document.getElementById('fp-prev-kotor').textContent=fmtRp(kotor);
+  document.getElementById('fp-prev-bersih').textContent=fmtRp(bersih);
+};
+
+const hitungPreviewPanenJdw=(id)=>{
+  const kg=parseFloat(document.getElementById('fp-kg-'+id).value)||0;
+  const harga=parseInt(document.getElementById('fp-harga-'+id).value)||0;
+  const upah=parseInt(document.getElementById('fp-upah-'+id).value)||0;
+  const prev=document.getElementById('fp-preview-'+id);
+  if(!prev)return;
+  if(!kg||!harga){prev.style.display='none';return;}
+  const kotor=Math.round(kg*harga);
+  const totalUpah=Math.round(kg*upah);
+  const bersih=kotor-totalUpah;
+  prev.style.display='block';
+  document.getElementById('fp-prev-upah-'+id).textContent=fmtRp(totalUpah);
+  document.getElementById('fp-prev-kotor-'+id).textContent=fmtRp(kotor);
+  document.getElementById('fp-prev-bersih-'+id).textContent=fmtRp(bersih);
 };
 
 /* ===== CATATAN LAPANGAN ===== */
