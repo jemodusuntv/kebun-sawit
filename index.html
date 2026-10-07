@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v9.1</title>
+<title>Kebun Sawit v9.2</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -177,7 +177,7 @@ textarea:focus{border-color:var(--green)}
     <button class="pin-btn del" onclick="pinDelete()">&#9003;</button>
   </div>
   <div class="pin-hint">Lupa PIN? Hubungi admin</div>
-  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 9.1</div>
+  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 9.2</div>
 </div>
 
 <div id="app-main" class="app-hidden">
@@ -227,7 +227,8 @@ textarea:focus{border-color:var(--green)}
     <div style="position:relative;height:180px"><canvas id="chart-ur-tren-dash"></canvas></div>
     <div class="chart-note">Hijau = untung, Merah = rugi, Kosong = belum ada data</div>
   </div>
-  <button class="btn btn-blue" onclick="exportCSV()" style="margin-top:4px">Export semua data ke CSV</button>
+  <button class="btn btn-blue" onclick="exportCSV()" style="margin-top:4px">Export CSV</button>
+  <button class="btn" style="background:#534AB7;color:#fff;margin-top:6px" onclick="backupJSON()">💾 Backup Lengkap (JSON)</button>
 </div>
 
 <!-- JADWAL -->
@@ -1144,6 +1145,35 @@ const renderRekap=()=>{
   }).filter(Boolean).join('');
   document.getElementById('rekap-detail-lahan').innerHTML=detailHtml||'<div class="empty">Tidak ada data di tahun '+tahun+'</div>';
   document.getElementById('rekap-isi').innerHTML='';
+};
+
+/* ===== BACKUP JSON ===== */
+const backupJSON=async()=>{
+  showToast('Mengambil data backup...',4000);
+  try{
+    const [lahan,realisasi,modal,jadwal,catatan,log,pengaturan]=await Promise.all([
+      sb('lahan','GET',null,'select=*'),
+      sb('realisasi_panen','GET',null,'select=*&order=tanggal.desc'),
+      sb('modal','GET',null,'select=*&order=tanggal.desc'),
+      sb('jadwal_aktif','GET',null,'select=*&order=tanggal_due'),
+      sb('catatan_lapangan','GET',null,'select=*&order=tanggal.desc'),
+      sb('log_kegiatan','GET',null,'select=*&order=tanggal.desc'),
+      sb('pengaturan','GET',null,'select=kunci,created_at'),
+    ]);
+    const backup={
+      _meta:{tanggal:new Date().toLocaleString('id-ID'),versi:'v9.2',app:'Kebun Sawit'},
+      lahan,realisasi_panen:realisasi,modal,jadwal_aktif:jadwal,
+      catatan_lapangan:catatan,log_kegiatan:log,pengaturan
+    };
+    const total=lahan.length+realisasi.length+modal.length+jadwal.length+catatan.length+log.length;
+    const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='backup_kebun_sawit_'+todayStr()+'.json';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✅ Backup berhasil — '+total+' records');
+  }catch(e){showToast('Gagal backup: '+e.message);}
 };
 
 /* ===== EXPORT CSV ===== */
