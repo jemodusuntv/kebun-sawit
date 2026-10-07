@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v9.3</title>
+<title>Kebun Sawit v9.4</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -177,7 +177,7 @@ textarea:focus{border-color:var(--green)}
     <button class="pin-btn del" onclick="pinDelete()">&#9003;</button>
   </div>
   <div class="pin-hint">Lupa PIN? Hubungi admin</div>
-  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 9.3</div>
+  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 9.4</div>
 </div>
 
 <div id="app-main" class="app-hidden">
@@ -229,6 +229,8 @@ textarea:focus{border-color:var(--green)}
   </div>
   <button class="btn btn-blue" onclick="exportCSV()" style="margin-top:4px">Export CSV</button>
   <button class="btn" style="background:#534AB7;color:#fff;margin-top:6px" onclick="backupJSON()">💾 Backup Lengkap (JSON)</button>
+  <button class="btn" style="background:#2a2a2a;color:#aaa;border:1px solid #333;margin-top:6px" onclick="document.getElementById('import-file').click()">📥 Import / Restore JSON</button>
+  <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(this)">
 </div>
 
 <!-- JADWAL -->
@@ -413,7 +415,9 @@ textarea:focus{border-color:var(--green)}
   <div class="section-lbl" style="margin-top:16px">Perbandingan tahun ini vs tahun lalu</div>
   <div class="card"><div id="rek-compare"><div class="loading">Memuat...</div></div></div>
   <div id="rekap-isi"></div>
-  <button class="btn btn-blue" onclick="exportCSV()" style="margin-top:8px">Export semua data ke CSV</button>
+  <button class="btn btn-blue" onclick="exportCSV()" style="margin-top:8px">Export CSV</button>
+  <button class="btn" style="background:#534AB7;color:#fff;margin-top:6px" onclick="backupJSON()">💾 Backup Lengkap (JSON)</button>
+  <button class="btn" style="background:#2a2a2a;color:#aaa;border:1px solid #333;margin-top:6px" onclick="document.getElementById('import-file').click()">📥 Import / Restore JSON</button>
 </div>
 
 <!-- LAHAN -->
@@ -1147,6 +1151,53 @@ const renderRekap=()=>{
   document.getElementById('rekap-isi').innerHTML='';
 };
 
+/* ===== IMPORT / RESTORE JSON ===== */
+const importJSON=async(input)=>{
+  const file=input.files[0];if(!file)return;
+  input.value='';
+  const ok=await showConfirm(
+    'Import akan MENAMBAHKAN data dari file backup ke database. Data yang sudah ada tidak dihapus. Lanjutkan?',
+    '📥 Import Backup'
+  );
+  if(!ok)return;
+  showToast('⏳ Membaca file backup...',5000);
+  try{
+    const text=await file.text();
+    const backup=JSON.parse(text);
+    let total=0,gagal=0;
+    const TABLES=[
+      {key:'lahan',table:'lahan'},
+      {key:'realisasi_panen',table:'realisasi_panen'},
+      {key:'modal',table:'modal'},
+      {key:'jadwal_aktif',table:'jadwal_aktif'},
+      {key:'catatan_lapangan',table:'catatan_lapangan'},
+      {key:'log_kegiatan',table:'log_kegiatan'},
+    ];
+    for(const {key,table} of TABLES){
+      const rows=backup[key];
+      if(!rows||!rows.length)continue;
+      // Upload per batch 50
+      for(let i=0;i<rows.length;i+=50){
+        const batch=rows.slice(i,i+50).map(r=>{
+          // Hapus id agar Supabase generate baru, hindari conflict
+          const {id,created_at,...rest}=r;
+          return rest;
+        });
+        try{
+          await sb(table,'POST',batch.length===1?batch[0]:batch);
+          total+=batch.length;
+        }catch(e){
+          gagal+=batch.length;
+        }
+      }
+    }
+    await loadAll(true);
+    showToast(`✅ Import selesai — ${total} records berhasil${gagal?`, ${gagal} gagal`:''}`,4000);
+  }catch(e){
+    showToast('❌ Gagal import: '+e.message,4000);
+  }
+};
+
 /* ===== BACKUP JSON ===== */
 const backupJSON=async()=>{
   showToast('Mengambil data backup...',4000);
@@ -1161,7 +1212,7 @@ const backupJSON=async()=>{
       sb('pengaturan','GET',null,'select=kunci'),
     ]);
     const backup={
-      _meta:{tanggal:new Date().toLocaleString('id-ID'),versi:'v9.3',app:'Kebun Sawit'},
+      _meta:{tanggal:new Date().toLocaleString('id-ID'),versi:'v9.4',app:'Kebun Sawit'},
       lahan,realisasi_panen:realisasi,modal,jadwal_aktif:jadwal,
       catatan_lapangan:catatan,log_kegiatan:log,pengaturan
     };
