@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v8.9</title>
+<title>Kebun Sawit v9.1</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -177,7 +177,7 @@ textarea:focus{border-color:var(--green)}
     <button class="pin-btn del" onclick="pinDelete()">&#9003;</button>
   </div>
   <div class="pin-hint">Lupa PIN? Hubungi admin</div>
-  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 8.9</div>
+  <div style="margin-top:16px;font-size:11px;color:var(--text3)">Versi 9.1</div>
 </div>
 
 <div id="app-main" class="app-hidden">
@@ -322,6 +322,9 @@ textarea:focus{border-color:var(--green)}
     </select>
   </div>
   <div id="list-catatan"><div class="loading">Memuat...</div></div>
+
+  <div class="section-lbl" style="margin-top:16px">📋 Histori kegiatan kebun</div>
+  <div id="list-log-kegiatan"><div class="loading">Memuat...</div></div>
 </div>
 
 <!-- BIAYA -->
@@ -464,7 +467,7 @@ const COLORS=['#1D9E75','#185FA5','#BA7517','#D85A30','#D4537E','#534AB7','#6399
 const TABS=['dashboard','jadwal','catatan','modal','rekap','lahan'];
 let LAHAN_NAMES=[];
 let CORRECT_PIN='';
-let cache={lahan:[],realisasi:[],modal:[],jadwal:[],catatan:[]};
+let cache={lahan:[],realisasi:[],modal:[],jadwal:[],catatan:[],log:[]};
 let filterJadwalMode='semua';
 
 const sb=async(table,method='GET',body=null,params='')=>{
@@ -533,18 +536,18 @@ const gantiPin=async()=>{
 
 const saveCache=()=>{try{sessionStorage.setItem(CACHE_KEY,JSON.stringify(cache));}catch(e){}};
 const loadCacheLocal=()=>{
-  try{const raw=sessionStorage.getItem(CACHE_KEY);if(!raw)return false;const saved=JSON.parse(raw);if(!saved.lahan)return false;cache=saved;if(!cache.catatan)cache.catatan=[];setConn(true);refreshSelects();renderDashboard();return true;}
+  try{const raw=sessionStorage.getItem(CACHE_KEY);if(!raw)return false;const saved=JSON.parse(raw);if(!saved.lahan)return false;cache=saved;if(!cache.catatan)cache.catatan=[];if(!cache.log)cache.log=[];setConn(true);refreshSelects();renderDashboard();return true;}
   catch(e){return false;}
 };
 const loadAll=async(force=false)=>{
   try{
     if(!force)loadCacheLocal();
-    const [lahan,realisasi,modal,jadwal,catatan]=await Promise.all([sb('lahan','GET',null,'order=nama'),sb('realisasi_panen','GET',null,'order=tanggal.desc'),sb('modal','GET',null,'order=tanggal.desc'),sb('jadwal_aktif','GET',null,'order=tanggal_due'),sb('catatan_lapangan','GET',null,'order=tanggal.desc,created_at.desc')]);
-    cache={lahan,realisasi,modal,jadwal,catatan};saveCache();setConn(true);refreshSelects();renderDashboard();
+    const [lahan,realisasi,modal,jadwal,catatan,log]=await Promise.all([sb('lahan','GET',null,'order=nama'),sb('realisasi_panen','GET',null,'order=tanggal.desc'),sb('modal','GET',null,'order=tanggal.desc'),sb('jadwal_aktif','GET',null,'order=tanggal_due'),sb('catatan_lapangan','GET',null,'order=tanggal.desc,created_at.desc'),sb('log_kegiatan','GET',null,'order=tanggal.desc,created_at.desc')]);
+    cache={lahan,realisasi,modal,jadwal,catatan,log};saveCache();setConn(true);refreshSelects();renderDashboard();
   }catch(e){setConn(false);if(loadCacheLocal())showToast('Offline — data terakhir ditampilkan');}
 };
-const updateCacheTable=(table,data)=>{if(table==='lahan')cache.lahan=data;else if(table==='realisasi_panen')cache.realisasi=data;else if(table==='modal')cache.modal=data;else if(table==='jadwal_aktif')cache.jadwal=data;else if(table==='catatan_lapangan')cache.catatan=data;saveCache();};
-const reloadTable=async(table)=>{const params={lahan:'order=nama',realisasi_panen:'order=tanggal.desc',modal:'order=tanggal.desc',jadwal_aktif:'order=tanggal_due',catatan_lapangan:'order=tanggal.desc,created_at.desc'};const fresh=await sb(table,'GET',null,params[table]||'');updateCacheTable(table,fresh);return fresh;};
+const updateCacheTable=(table,data)=>{if(table==='lahan')cache.lahan=data;else if(table==='realisasi_panen')cache.realisasi=data;else if(table==='modal')cache.modal=data;else if(table==='jadwal_aktif')cache.jadwal=data;else if(table==='catatan_lapangan')cache.catatan=data;else if(table==='log_kegiatan')cache.log=data;saveCache();};
+const reloadTable=async(table)=>{const params={lahan:'order=nama',realisasi_panen:'order=tanggal.desc',modal:'order=tanggal.desc',jadwal_aktif:'order=tanggal_due',catatan_lapangan:'order=tanggal.desc,created_at.desc',log_kegiatan:'order=tanggal.desc,created_at.desc'};const fresh=await sb(table,'GET',null,params[table]||'');updateCacheTable(table,fresh);return fresh;};
 
 const refreshSelects=()=>{
   LAHAN_NAMES=cache.lahan.map(l=>l.nama);
@@ -743,28 +746,51 @@ const simpanJadwalForm=async()=>{
   const due=document.getElementById('jdw-due-preview').value;if(!due||due==='—'){showToast('Pilih detail kegiatan dulu');return;}
   const jenis=document.getElementById('jdw-jenis').value;const detail=document.getElementById('jdw-detail').value||jenis;const interval=document.getElementById('jdw-interval').value;
   const katMap={Herbisida:'Herbisida',Pupuk:'Pupuk',Pruning:'Pruning'};
+  const biaya=parseInt(document.getElementById('jdw-kegiatan-biaya').value)||0;
+  const ket=document.getElementById('jdw-kegiatan-ket').value;const satuan=document.getElementById('jdw-kegiatan-satuan').value;
   try{
-    await simpanJadwal(lahan,jenis,detail,due,interval,'manual');
-    const biaya=parseInt(document.getElementById('jdw-kegiatan-biaya').value)||0;
-    const ket=document.getElementById('jdw-kegiatan-ket').value;const satuan=document.getElementById('jdw-kegiatan-satuan').value;
-    if(biaya>0&&katMap[jenis]){await sb('modal','POST',{lahan,kategori:katMap[jenis],jenis:detail,tanggal:terakhir,jumlah:1,satuan,harga_satuan:biaya,total:biaya,keterangan:ket});await reloadTable('modal');showToast('Jadwal + biaya '+jenis+' tersimpan');}
-    else showToast('Jadwal ditambahkan — jatuh tempo: '+due);
-    document.getElementById('jdw-kegiatan-biaya').value='';document.getElementById('jdw-kegiatan-ket').value='';
+    // 1. Simpan log kegiatan dulu
+    await sb('log_kegiatan','POST',{lahan,jenis,detail,tanggal:terakhir,biaya,keterangan:ket});
+
+    // 2. Update jadwal lama yang sama jenis+lahan → ganti tanggal ke due berikutnya
+    const jadwalLama=cache.jadwal.filter(j=>j.lahan===lahan&&j.jenis===jenis&&j.status==='pending');
+    if(jadwalLama.length>0){
+      // Update jadwal pertama, hapus sisanya jika ada duplikat
+      await sb('jadwal_aktif','PATCH',{tanggal_due:due,interval_bulan:parseInt(interval)||null,detail},'id=eq.'+jadwalLama[0].id);
+      for(let i=1;i<jadwalLama.length;i++)await sb('jadwal_aktif','DELETE',null,'id=eq.'+jadwalLama[i].id);
+    } else {
+      // Belum ada jadwal jenis ini → buat baru
+      await simpanJadwal(lahan,jenis,detail,due,interval,'manual');
+    }
+
+    // 3. Simpan biaya ke modal jika ada
+    if(biaya>0&&katMap[jenis]){
+      await sb('modal','POST',{lahan,kategori:katMap[jenis],jenis:detail,tanggal:terakhir,jumlah:1,satuan,harga_satuan:biaya,total:biaya,keterangan:ket});
+      await reloadTable('modal');
+    }
+
     await reloadTable('jadwal_aktif');renderJadwal();renderDashboard();
+    showToast('✅ '+jenis+' '+lahan+' dicatat — jadwal berikutnya: '+due);
+    document.getElementById('jdw-kegiatan-biaya').value='';document.getElementById('jdw-kegiatan-ket').value='';
     document.getElementById('jdw-terakhir').value=todayStr();document.getElementById('jdw-due-preview').value='—';document.getElementById('jdw-lahan').value='';updateDetailJadwal();
   }catch(e){showToast('Gagal: '+e.message);}
 };
 const tandaiSelesai=async id=>{
   const j=cache.jadwal.find(x=>x.id===id);if(!j)return;
   try{
-    await sb('jadwal_aktif','PATCH',{status:'selesai'},'id=eq.'+id);
     if(j.interval_bulan){
-      const nd=new Date();nd.setMonth(nd.getMonth()+parseInt(j.interval_bulan));const ndStr=nd.toISOString().slice(0,10);
-      const existing=cache.jadwal.find(x=>x.id!==id&&x.status==='pending'&&x.lahan===j.lahan&&x.jenis===j.jenis&&x.detail===j.detail);
-      if(existing)await sb('jadwal_aktif','PATCH',{tanggal_due:ndStr},'id=eq.'+existing.id);
-      else await simpanJadwal(j.lahan,j.jenis,j.detail,ndStr,j.interval_bulan,'auto');
+      // Hitung tanggal berikutnya dari hari ini
+      const nd=new Date();nd.setMonth(nd.getMonth()+parseInt(j.interval_bulan));
+      const ndStr=nd.toISOString().slice(0,10);
+      // Update jadwal ini langsung ke tanggal berikutnya (reset ke pending)
+      await sb('jadwal_aktif','PATCH',{status:'pending',tanggal_due:ndStr},'id=eq.'+id);
+      showToast('Jadwal berikutnya: '+ndStr);
+    } else {
+      // Tidak ada interval — tandai selesai saja
+      await sb('jadwal_aktif','PATCH',{status:'selesai'},'id=eq.'+id);
+      showToast('Jadwal selesai');
     }
-    await reloadTable('jadwal_aktif');renderJadwal();renderDashboard();showToast('Selesai'+(j.interval_bulan?' — jadwal berikutnya diperbarui':''));
+    await reloadTable('jadwal_aktif');renderJadwal();renderDashboard();
   }catch(e){showToast('Gagal');}
 };
 const filterJadwal=(mode,btn)=>{filterJadwalMode=mode;document.querySelectorAll('#jdw-filter-row .filter-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderJadwal();};
@@ -815,6 +841,7 @@ const renderJadwal=()=>{
         <span class="badge ${selesai?'b-gray':st.cls}" style="flex-shrink:0;margin-left:8px;white-space:nowrap">${selesai?'Selesai':st.label}</span>
       </div>
       <div class="item-actions">
+        ${!selesai&&!isPanen?`<button class="btn-sm btn-green" onclick="tandaiSelesai('${j.id}')">✓ Selesai</button>`:''}
         <button class="btn-sm btn-gray" onclick="togglePane('jview-${j.id}')">Lihat</button>
         <button class="btn-sm btn-red" onclick="hapusItem('jadwal_aktif','${j.id}','Hapus jadwal ini?')">Hapus</button>
       </div>
@@ -893,15 +920,45 @@ const renderCatatan=()=>{
   const lahanFilter=document.getElementById('cat-filter-lahan')?.value||'';
   let data=(cache.catatan||[]);
   if(lahanFilter)data=data.filter(c=>c.lahan===lahanFilter);
-  if(!data.length){document.getElementById('list-catatan').innerHTML='<div class="empty">Belum ada catatan kunjungan</div>';return;}
-  if(!lahanFilter){
+  if(!data.length){document.getElementById('list-catatan').innerHTML='<div class="empty">Belum ada catatan kunjungan</div>';}
+  else if(!lahanFilter){
     const grouped={};
     data.forEach(c=>{if(!grouped[c.lahan])grouped[c.lahan]=[];grouped[c.lahan].push(c);});
     document.getElementById('list-catatan').innerHTML=Object.keys(grouped).map(nama=>`<div class="section-lbl" style="margin-top:8px">📍 ${nama}</div>${grouped[nama].map(c=>catatanCard(c)).join('')}`).join('');
   } else {
     document.getElementById('list-catatan').innerHTML=data.map(c=>catatanCard(c)).join('');
   }
+  renderLogKegiatan(lahanFilter);
 };
+
+const renderLogKegiatan=(lahanFilter='')=>{
+  const el=document.getElementById('list-log-kegiatan');if(!el)return;
+  let data=(cache.log||[]);
+  if(lahanFilter)data=data.filter(l=>l.lahan===lahanFilter);
+  if(!data.length){el.innerHTML='<div class="empty">Belum ada histori kegiatan</div>';return;}
+  const jColor={Herbisida:'b-amber',Pupuk:'b-green',Pruning:'b-blue',Panen:'b-orange'};
+  if(!lahanFilter){
+    // Group by lahan
+    const grouped={};
+    data.forEach(l=>{if(!grouped[l.lahan])grouped[l.lahan]=[];grouped[l.lahan].push(l);});
+    el.innerHTML=Object.keys(grouped).map(nama=>`
+      <div class="section-lbl" style="margin-top:8px">📍 ${nama}</div>
+      ${grouped[nama].map(l=>logCard(l,jColor)).join('')}
+    `).join('');
+  } else {
+    el.innerHTML=data.map(l=>logCard(l,jColor)).join('');
+  }
+};
+
+const logCard=(l,jColor)=>`<div class="item-card" style="border-left:3px solid var(--border2)">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+    <span class="badge ${jColor[l.jenis]||'b-gray'}">${l.jenis}</span>
+    <span style="font-size:12px;color:var(--text2)">${l.tanggal}</span>
+  </div>
+  <div class="item-sub">${l.detail||l.jenis}${l.lahan?' &nbsp;|&nbsp; <b>'+l.lahan+'</b>':''}</div>
+  ${l.biaya>0?`<div class="item-sub" style="color:var(--red)">Biaya: ${fmtRp(l.biaya)}</div>`:''}
+  ${l.keterangan?`<div class="item-sub">${l.keterangan}</div>`:''}
+</div>`;
 const catatanCard=c=>`<div class="catatan-card">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
     <span style="font-weight:700;font-size:13px">📅 ${c.tanggal}</span>
