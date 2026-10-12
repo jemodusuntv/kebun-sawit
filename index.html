@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v9.5</title>
+<title>Kebun Sawit v9.7</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -289,6 +289,7 @@ textarea:focus{border-color:var(--green)}
         <div class="form-group"><label>Keterangan</label><input type="text" id="jdw-kegiatan-ket" placeholder="cth: 3 orang, 2 hari"></div>
       </div>
       <button class="btn btn-green" onclick="simpanJadwalForm()">Simpan jadwal</button>
+      <button class="btn btn-gray" style="margin-top:6px;font-size:12px" onclick="isiContohPupuk()">🧪 Isi contoh data pupuk (tanggal lama)</button>
     </div>
   </div>
   <div class="filter-row" id="jdw-filter-row">
@@ -397,9 +398,9 @@ textarea:focus{border-color:var(--green)}
   <div class="card" style="padding:12px"><div style="position:relative;height:200px"><canvas id="chart-donat"></canvas></div></div>
   <div class="section-lbl" style="margin-top:4px">Untung / Rugi per lahan — <span id="rek-ur-bar-label"></span></div>
   <div class="card" style="padding:12px"><div style="position:relative" id="chart-ur-wrap"><canvas id="chart-ur"></canvas></div></div>
-  <div class="section-lbl" style="margin-top:16px">Rekap per bulan</div>
+  <div class="section-lbl" style="margin-top:16px">Rekap per bulan <span style="font-weight:400;color:var(--text3);font-size:11px">(kotor − upah panen − biaya perawatan = untung/rugi)</span></div>
   <div id="rekap-bulanan"><div class="loading">Memuat...</div></div>
-  <div class="section-lbl" style="margin-top:16px">Untung / Rugi per lahan</div>
+  <div class="section-lbl" style="margin-top:16px">Untung / Rugi per lahan <span style="font-weight:400;color:var(--text3);font-size:11px">(sesungguhnya, semua biaya sudah dipotong)</span></div>
   <div id="rekap-ur"></div>
   <div class="section-lbl" style="margin-top:4px">Detail per Lahan per Bulan — <span id="rek-detail-label"></span></div>
   <div id="rekap-detail-lahan"></div>
@@ -415,6 +416,8 @@ textarea:focus{border-color:var(--green)}
   <div class="section-lbl" style="margin-top:16px">Perbandingan tahun ini vs tahun lalu</div>
   <div class="card"><div id="rek-compare"><div class="loading">Memuat...</div></div></div>
   <div id="rekap-isi"></div>
+  <div class="section-lbl" style="margin-top:16px">🧪 Analisis: Pupuk vs Hasil Panen</div>
+  <div id="rekap-pupuk-analisis"><div class="loading">Memuat...</div></div>
   <button class="btn btn-blue" onclick="exportCSV()" style="margin-top:8px">Export CSV</button>
   <button class="btn" style="background:#534AB7;color:#fff;margin-top:6px" onclick="backupJSON()">💾 Backup Lengkap (JSON)</button>
   <button class="btn" style="background:#2a2a2a;color:#aaa;border:1px solid #333;margin-top:6px" onclick="document.getElementById('import-file').click()">📥 Import / Restore JSON</button>
@@ -747,6 +750,33 @@ const DETAIL_JADWAL={
   Pupuk:[{label:'Urea (N)',interval:4},{label:'MOP/KCl (K)',interval:4},{label:'TSP/SP-36 (P)',interval:6},{label:'Dolomit (Mg)',interval:6},{label:'Borate (B)',interval:6},{label:'NPK Majemuk',interval:3},{label:'Kiserit',interval:6},{label:'PKSC/Janjang kosong',interval:6}],
   Pruning:[{label:'Sanitasi (pelepah kering)',interval:6},{label:'Songgo 2',interval:6},{label:'Songgo 1',interval:6},{label:'Kastrasi (pohon muda/TBM)',interval:3}]
 };
+const isiContohPupuk=()=>{
+  // Isi form non-panen dengan data contoh pupuk tanggal 2001-01-01
+  const lahanSel=document.getElementById('jdw-lahan');
+  const jenisSel=document.getElementById('jdw-jenis');
+  const detailSel=document.getElementById('jdw-detail');
+  const terakhirEl=document.getElementById('jdw-terakhir');
+  const biayaEl=document.getElementById('jdw-kegiatan-biaya');
+  const ketEl=document.getElementById('jdw-kegiatan-ket');
+  // Pilih lahan pertama jika belum dipilih
+  if(!lahanSel.value&&lahanSel.options.length>1)lahanSel.value=lahanSel.options[1].value;
+  // Pilih Pupuk
+  jenisSel.value='Pupuk';updateDetailJadwal();
+  // Pilih NPK Majemuk (opsi pertama)
+  if(detailSel.options.length>0){
+    const npk=[...detailSel.options].find(o=>o.text.toLowerCase().includes('npk'));
+    if(npk)detailSel.value=npk.value;
+    updateIntervalJadwal();
+  }
+  // Tanggal lama 1 Januari 2001
+  terakhirEl.value='2001-01-01';hitungDueDate();
+  // Biaya contoh
+  if(biayaEl)biayaEl.value='250000';
+  if(ketEl)ketEl.value='Data contoh — pupuk awal';
+  // Tampilkan form biaya
+  const fb=document.getElementById('form-kegiatan-biaya');if(fb)fb.style.display='block';
+  showToast('Form diisi data contoh pupuk — klik Simpan untuk menyimpan');
+};
 const updateDetailJadwal=()=>{
   const jenis=document.getElementById('jdw-jenis').value;const isPanen=jenis==='Panen';
   document.getElementById('form-panen-inline').style.display=isPanen?'block':'none';
@@ -808,7 +838,7 @@ const simpanJadwalForm=async()=>{
       await reloadTable('modal');
     }
 
-    await reloadTable('jadwal_aktif');renderJadwal();renderDashboard();
+    await reloadTable('jadwal_aktif');await reloadTable('log_kegiatan');renderJadwal();renderDashboard();
     showToast('✅ '+jenis+' '+lahan+' dicatat — jadwal berikutnya: '+due);
     document.getElementById('jdw-kegiatan-biaya').value='';document.getElementById('jdw-kegiatan-ket').value='';
     document.getElementById('jdw-terakhir').value=todayStr();document.getElementById('jdw-due-preview').value='—';document.getElementById('jdw-lahan').value='';updateDetailJadwal();
@@ -1077,9 +1107,27 @@ const renderRekap=()=>{
     const kotor=rb.reduce((a,r)=>a+(r.pendapatan||0),0);
     const upah=rb.reduce((a,r)=>a+(r.total_upah||0),0);
     const bersih=rb.reduce((a,r)=>a+(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0),0);
+    const mPupuk=mb.filter(m=>m.kategori==='Pupuk').reduce((a,m)=>a+(m.total||0),0);
+    const mHerb=mb.filter(m=>m.kategori==='Herbisida').reduce((a,m)=>a+(m.total||0),0);
+    const mPrun=mb.filter(m=>m.kategori==='Pruning').reduce((a,m)=>a+(m.total||0),0);
+    const mLain=mb.filter(m=>!['Pupuk','Herbisida','Pruning'].includes(m.kategori)).reduce((a,m)=>a+(m.total||0),0);
     const modal=mb.reduce((a,m)=>a+(m.total||0),0);
-    const ur=bersih-modal;
-    return`<div class="rekap-card"><div class="rekap-head" style="display:flex;justify-content:space-between"><span>${nm} ${tahun}</span><span style="color:${ur>=0?'var(--green)':'var(--red)'};font-weight:700">${ur>=0?'▲':'▼'} ${fmtK(Math.abs(ur))}</span></div><div class="rekap-body"><div class="info-row"><span style="color:var(--text2)">Produksi</span><span><b>${fmt(Math.round(kg))} kg</b> (${rb.length}x)</span></div><div class="info-row"><span style="color:var(--text2)">Pendapatan kotor</span><span style="color:var(--orange)">${fmtK(kotor)}</span></div><div class="info-row"><span style="color:var(--text2)">Upah panen</span><span style="color:var(--red)">${fmtK(upah)}</span></div><div class="info-row"><span style="color:var(--text2)">Pendapatan bersih</span><span style="color:var(--orange);font-weight:600">${fmtK(bersih)}</span></div><div class="info-row"><span style="color:var(--text2)">Total modal</span><span style="color:var(--red)">${fmtK(modal)}</span></div><div class="info-row" style="border:none"><span style="font-weight:700">${ur>=0?'Untung':'Rugi'}</span><span style="font-weight:700;color:${ur>=0?'var(--green)':'var(--red)'}">${fmtK(Math.abs(ur))}</span></div></div></div>`;
+    const ur=bersih-modal; // untung/rugi sesungguhnya = pendapatan bersih (sudah dipotong upah panen) - semua biaya perawatan
+    const biayaDetail=[
+      mPupuk?`<div class="info-row"><span style="color:var(--text2);padding-left:12px">— Pupuk</span><span style="color:var(--red)">${fmtK(mPupuk)}</span></div>`:'',
+      mHerb?`<div class="info-row"><span style="color:var(--text2);padding-left:12px">— Herbisida/Babat</span><span style="color:var(--red)">${fmtK(mHerb)}</span></div>`:'',
+      mPrun?`<div class="info-row"><span style="color:var(--text2);padding-left:12px">— Pruning</span><span style="color:var(--red)">${fmtK(mPrun)}</span></div>`:'',
+      mLain?`<div class="info-row"><span style="color:var(--text2);padding-left:12px">— Lain-lain</span><span style="color:var(--red)">${fmtK(mLain)}</span></div>`:'',
+    ].join('');
+    return`<div class="rekap-card"><div class="rekap-head" style="display:flex;justify-content:space-between"><span>${nm} ${tahun}</span><span style="color:${ur>=0?'var(--green)':'var(--red)'};font-weight:700">${ur>=0?'▲ UNTUNG':'▼ RUGI'} ${fmtK(Math.abs(ur))}</span></div><div class="rekap-body">
+      <div class="info-row"><span style="color:var(--text2)">Produksi</span><span><b>${fmt(Math.round(kg))} kg</b> (${rb.length}x panen)</span></div>
+      <div class="info-row"><span style="color:var(--text2)">Pendapatan kotor</span><span style="color:var(--orange)">${fmtK(kotor)}</span></div>
+      <div class="info-row"><span style="color:var(--text2)">− Upah panen</span><span style="color:var(--red)">${fmtK(upah)}</span></div>
+      <div class="info-row" style="background:var(--bg3);padding:6px 8px;border-radius:6px;border:none;margin:4px 0"><span style="font-weight:600">= Setelah upah panen</span><span style="color:var(--orange);font-weight:700">${fmtK(bersih)}</span></div>
+      <div class="info-row"><span style="color:var(--text2)">− Biaya perawatan${modal>0?' ('+mb.length+'x)':''}</span><span style="color:var(--red)">${fmtK(modal)}</span></div>
+      ${biayaDetail}
+      <div class="info-row" style="border:none;padding-top:6px;border-top:2px solid var(--border)"><span style="font-weight:700;font-size:14px">${ur>=0?'✅ UNTUNG BERSIH':'❌ RUGI BERSIH'}</span><span style="font-weight:700;font-size:14px;color:${ur>=0?'var(--green)':'var(--red)'}">${fmtK(Math.abs(ur))}</span></div>
+    </div></div>`;
   }).filter(Boolean);
   document.getElementById('rekap-bulanan').innerHTML=bulanRows.length?bulanRows.join(''):'<div class="empty">Belum ada data di tahun '+tahun+'</div>';
 
@@ -1146,7 +1194,16 @@ const renderRekap=()=>{
 
   // Untung/rugi per lahan
   const lahanList=lahanFilter?cache.lahan.filter(d=>d.nama===lahanFilter):cache.lahan;
-  const urAll=`<div class="item-card" style="background:${ur>=0?'var(--badge-green-bg)':'var(--badge-red-bg)'};border-color:${ur>=0?'var(--green)':'var(--red)'}"><div class="info-row"><span style="font-weight:600">Total pendapatan bersih</span><span style="color:var(--orange);font-weight:700">${fmtK(totBersih)}</span></div><div class="info-row"><span style="font-weight:600">Total modal</span><span style="color:var(--red);font-weight:700">${fmtK(totModal)}</span></div><div class="info-row" style="border:none"><span style="font-weight:700;font-size:15px">Total ${ur>=0?'UNTUNG':'RUGI'}</span><span style="font-weight:700;font-size:15px;color:${ur>=0?'var(--green)':'var(--red)'}">${fmtK(Math.abs(ur))}</span></div></div>`;
+  const totKotorAll=reaAll.reduce((a,r)=>a+(r.pendapatan||0),0);
+  const totUpahAll=reaAll.reduce((a,r)=>a+(r.total_upah||0),0);
+  const urAll=`<div class="item-card" style="background:${ur>=0?'var(--badge-green-bg)':'var(--badge-red-bg)'};border-color:${ur>=0?'var(--green)':'var(--red)'}">
+    <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">💰 Perhitungan Lengkap${lahanFilter?' — '+lahanFilter:''}</div>
+    <div class="info-row"><span style="color:var(--text2)">Pendapatan kotor</span><span style="color:var(--orange);font-weight:600">${fmtK(totKotorAll)}</span></div>
+    <div class="info-row"><span style="color:var(--text2)">− Upah panen</span><span style="color:var(--red)">${fmtK(totUpahAll)}</span></div>
+    <div class="info-row" style="background:var(--bg3);padding:6px 8px;border-radius:6px;border:none;margin:4px 0"><span style="font-weight:600">= Setelah upah panen</span><span style="color:var(--orange);font-weight:700">${fmtK(totBersih)}</span></div>
+    <div class="info-row"><span style="color:var(--text2)">− Semua biaya perawatan</span><span style="color:var(--red);font-weight:600">${fmtK(totModal)}</span></div>
+    <div class="info-row" style="border-top:2px solid ${ur>=0?'var(--green)':'var(--red)'};padding-top:10px;border-bottom:none"><span style="font-weight:700;font-size:16px">${ur>=0?'✅ UNTUNG BERSIH':'❌ RUGI BERSIH'}</span><span style="font-weight:700;font-size:16px;color:${ur>=0?'var(--green)':'var(--red)'}">${fmtK(Math.abs(ur))}</span></div>
+  </div>`;
   const urCards=lahanList.map(d=>{
     const rL=rea.filter(r=>r.lahan===d.nama),mL=mod.filter(m=>m.lahan===d.nama);
     const inc=rL.reduce((a,r)=>a+(r.pendapatan||0),0),upahT=rL.reduce((a,r)=>a+(r.total_upah||0),0);
@@ -1154,8 +1211,22 @@ const renderRekap=()=>{
     const mPupuk=mL.filter(m=>m.kategori==='Pupuk').reduce((a,m)=>a+(m.total||0),0);
     const mHerb=mL.filter(m=>m.kategori==='Herbisida').reduce((a,m)=>a+(m.total||0),0);
     const mPrun=mL.filter(m=>m.kategori==='Pruning').reduce((a,m)=>a+(m.total||0),0);
-    const totM=mPupuk+mHerb+mPrun,sel=bersihL-totM;
-    return`<div class="rekap-card"><div class="rekap-head" style="display:flex;justify-content:space-between"><span>${d.nama}</span><span style="color:${sel>=0?'var(--green)':'var(--red)'};font-weight:700">${sel>=0?'UNTUNG':'RUGI'} ${fmtK(Math.abs(sel))}</span></div><div class="rekap-body"><div class="info-row"><span style="color:var(--text2)">Pendapatan bersih</span><span style="color:var(--orange);font-weight:600">${fmtK(bersihL)}</span></div><div class="info-row"><span style="font-weight:600">Total modal</span><span style="color:var(--red);font-weight:600">${fmtK(totM)}</span></div><div class="info-row" style="border:none;padding-top:8px"><span style="font-weight:700;font-size:14px">${sel>=0?'Keuntungan':'Kerugian'}</span><span style="font-weight:700;font-size:14px;color:${sel>=0?'var(--green)':'var(--red)'}">${fmtK(Math.abs(sel))}</span></div></div></div>`;
+    const mLain=mL.filter(m=>!['Pupuk','Herbisida','Pruning'].includes(m.kategori)).reduce((a,m)=>a+(m.total||0),0);
+    const totM=mPupuk+mHerb+mPrun+mLain,sel=bersihL-totM;
+    const kgL=rL.reduce((a,r)=>a+(r.kg_aktual||0),0);
+    const kotorL=rL.reduce((a,r)=>a+(r.pendapatan||0),0);
+    return`<div class="rekap-card"><div class="rekap-head" style="display:flex;justify-content:space-between"><span>📍 ${d.nama}</span><span style="color:${sel>=0?'var(--green)':'var(--red)'};font-weight:700">${sel>=0?'✅ UNTUNG':'❌ RUGI'} ${fmtK(Math.abs(sel))}</span></div><div class="rekap-body">
+      <div class="info-row"><span style="color:var(--text2)">Total produksi</span><span><b>${fmt(Math.round(kgL))} kg</b> (${rL.length}x panen)</span></div>
+      <div class="info-row"><span style="color:var(--text2)">Pendapatan kotor</span><span style="color:var(--orange)">${fmtK(kotorL)}</span></div>
+      <div class="info-row"><span style="color:var(--text2)">− Upah panen</span><span style="color:var(--red)">${fmtK(upahT)}</span></div>
+      <div class="info-row" style="background:var(--bg3);padding:6px 8px;border-radius:6px;border:none;margin:4px 0"><span style="font-weight:600">= Setelah upah panen</span><span style="color:var(--orange);font-weight:700">${fmtK(bersihL)}</span></div>
+      ${mPupuk?`<div class="info-row"><span style="color:var(--text2)">− Pupuk</span><span style="color:var(--red)">${fmtK(mPupuk)}</span></div>`:''}
+      ${mHerb?`<div class="info-row"><span style="color:var(--text2)">− Herbisida/Babat</span><span style="color:var(--red)">${fmtK(mHerb)}</span></div>`:''}
+      ${mPrun?`<div class="info-row"><span style="color:var(--text2)">− Pruning</span><span style="color:var(--red)">${fmtK(mPrun)}</span></div>`:''}
+      ${mLain?`<div class="info-row"><span style="color:var(--text2)">− Lain-lain</span><span style="color:var(--red)">${fmtK(mLain)}</span></div>`:''}
+      ${totM?`<div class="info-row"><span style="color:var(--text2)">Total perawatan</span><span style="color:var(--red);font-weight:700">${fmtK(totM)}</span></div>`:'<div class="info-row"><span style="color:var(--text3)">Belum ada biaya perawatan dicatat</span><span></span></div>'}
+      <div class="info-row" style="border-top:2px solid var(--border);padding-top:8px;border-bottom:none"><span style="font-weight:700;font-size:14px">${sel>=0?'✅ UNTUNG BERSIH':'❌ RUGI BERSIH'}</span><span style="font-weight:700;font-size:14px;color:${sel>=0?'var(--green)':'var(--red)'}">${fmtK(Math.abs(sel))}</span></div>
+    </div></div>`;
   }).join('');
   document.getElementById('rekap-ur').innerHTML=urAll+urCards;
 
@@ -1199,6 +1270,87 @@ const renderRekap=()=>{
   }).filter(Boolean).join('');
   document.getElementById('rekap-detail-lahan').innerHTML=detailHtml||'<div class="empty">Tidak ada data di tahun '+tahun+'</div>';
   document.getElementById('rekap-isi').innerHTML='';
+  renderAnalisisPupuk(tahun,lahanFilter);
+};
+
+/* ===== ANALISIS PUPUK vs PANEN ===== */
+const renderAnalisisPupuk=(tahun,lahanFilter)=>{
+  const el=document.getElementById('rekap-pupuk-analisis');if(!el)return;
+  // Ambil semua log pupuk & panen di tahun yang sama
+  const logPupuk=(cache.log||[]).filter(l=>l.jenis==='Pupuk'&&(!lahanFilter||l.lahan===lahanFilter));
+  const panenData=(cache.realisasi||[]).filter(r=>(!lahanFilter||r.lahan===lahanFilter));
+  if(!logPupuk.length&&!panenData.length){el.innerHTML='<div class="empty">Belum ada data pupuk maupun panen untuk dianalisis</div>';return;}
+  if(!logPupuk.length){el.innerHTML='<div class="empty">Belum ada data pemupukan di log — catat pemupukan dulu via tab Jadwal</div>';return;}
+  if(!panenData.length){el.innerHTML='<div class="empty">Belum ada data panen untuk dianalisis</div>';return;}
+
+  // Kelompokkan per lahan
+  const lahanList=lahanFilter?[lahanFilter]:[...new Set([...logPupuk.map(l=>l.lahan),...panenData.map(r=>r.lahan)])].sort();
+  const kartuHtml=lahanList.map(nama=>{
+    const pupukLahan=logPupuk.filter(l=>l.lahan===nama).sort((a,b)=>new Date(a.tanggal)-new Date(b.tanggal));
+    const panenLahan=panenData.filter(r=>r.lahan===nama).sort((a,b)=>new Date(a.tanggal)-new Date(b.tanggal));
+    if(!pupukLahan.length||!panenLahan.length)return'';
+
+    // Untuk setiap log pupuk, cari panen yang dilakukan dalam 90 hari sesudahnya
+    const pasangan=pupukLahan.map(p=>{
+      const tglPupuk=new Date(p.tanggal+'T00:00:00');
+      // Cari panen yg terjadi 7–120 hari setelah pemupukan
+      const panenSetelah=panenLahan.filter(r=>{
+        const tglPanen=new Date(r.tanggal+'T00:00:00');
+        const selisih=(tglPanen-tglPupuk)/86400000;
+        return selisih>=7&&selisih<=120;
+      });
+      if(!panenSetelah.length)return null;
+      // Ambil panen pertama setelah pemupukan
+      const p1=panenSetelah[0];
+      const selisih=Math.round((new Date(p1.tanggal+'T00:00:00')-tglPupuk)/86400000);
+      return{tglPupuk:p.tanggal,detail:p.detail||'Pupuk',tglPanen:p1.tanggal,kg:p1.kg_aktual,selisih,biayaPupuk:p.biaya||0};
+    }).filter(Boolean);
+
+    // Statistik panen TANPA pupuk vs DENGAN pupuk (panenLahan yg tidak punya pupuk sebelumnya 7-120 hari)
+    const tglPupukSet=new Set(pupukLahan.map(p=>p.tanggal));
+    const panenDenganPupuk=pasangan.map(p=>p.kg);
+    const panenTanpaPupuk=panenLahan.filter(r=>{
+      const tglPanen=new Date(r.tanggal+'T00:00:00');
+      return !pupukLahan.some(p=>{const s=(tglPanen-new Date(p.tanggal+'T00:00:00'))/86400000;return s>=7&&s<=120;});
+    }).map(r=>r.kg_aktual);
+
+    const avg=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):0;
+    const avgDengan=avg(panenDenganPupuk);
+    const avgTanpa=avg(panenTanpaPupuk);
+    const diff=avgDengan-avgTanpa;
+    const pctStr=avgTanpa>0?(diff>=0?'+':'')+Math.round(diff/avgTanpa*100)+'%':'N/A';
+    const hasilWarna=diff>=0?'var(--green)':'var(--red)';
+
+    const pasanganRows=pasangan.slice(0,5).map((p,i)=>`
+      <div class="info-row"${i===Math.min(pasangan.length,5)-1?' style="border:none"':''}>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600">${p.tglPupuk} → panen ${p.tglPanen}</div>
+          <div style="font-size:11px;color:var(--text2)">${p.detail} &nbsp;|&nbsp; selisih ${p.selisih} hari${p.biayaPupuk>0?' &nbsp;|&nbsp; biaya '+fmtRp(p.biayaPupuk):''}</div>
+        </div>
+        <span style="font-weight:700;color:var(--green);white-space:nowrap">${fmt(p.kg)} kg</span>
+      </div>`).join('');
+
+    return`<div class="rekap-card">
+      <div class="rekap-head" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="toggleDetail('anl-${nama.replace(/\s/g,'_')}',this)">
+        <span>📍 ${nama}</span><span style="font-size:11px;opacity:0.7">▼ lihat detail</span>
+      </div>
+      <div id="anl-${nama.replace(/\s/g,'_')}" class="rekap-body" style="display:none">
+        ${pasangan.length?`
+        <div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:10px">
+          <div class="info-row"><span style="color:var(--text2)">Rata-rata kg setelah pupuk</span><span style="font-weight:700;color:var(--green)">${fmt(avgDengan)} kg</span></div>
+          <div class="info-row"><span style="color:var(--text2)">Rata-rata kg tanpa pupuk sebelumnya</span><span style="font-weight:600">${avgTanpa?fmt(avgTanpa)+' kg':'(belum ada data)'}</span></div>
+          <div class="info-row" style="border:none"><span style="font-weight:700">Selisih / Pengaruh</span>
+            <span style="font-weight:700;color:${hasilWarna}">${diff>=0?'+':''}${fmt(diff)} kg &nbsp;<span style="font-size:12px">(${pctStr})</span></span>
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">PASANGAN PUPUK → PANEN (maks 5 tampil)</div>
+        ${pasanganRows}
+        `:`<div class="empty">Tidak ada panen dalam 7–120 hari setelah pemupukan untuk dianalisis</div>`}
+        ${pasangan.length&&panenTanpaPupuk.length===0?`<div style="font-size:11px;color:var(--text3);padding-top:6px">Semua panen yang tercatat memiliki pemupukan sebelumnya — tidak ada pembanding tanpa pupuk</div>`:''}
+      </div>
+    </div>`;
+  }).filter(Boolean).join('');
+  el.innerHTML=kartuHtml||`<div class="empty">Tidak cukup data pasangan pupuk→panen.<br>Data pupuk dan panen harus ada di lahan yang sama,<br>dengan selisih waktu 7–120 hari.</div>`;
 };
 
 /* ===== IMPORT / RESTORE JSON ===== */
