@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v9.4</title>
+<title>Kebun Sawit v9.5</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -699,10 +699,44 @@ const simpanLahan=async()=>{
 };
 const renderLahan=()=>{
   if(!cache.lahan.length){document.getElementById('list-lahan').innerHTML='<div class="empty">Belum ada data lahan</div>';return;}
+  const jColor={Herbisida:'b-amber',Pupuk:'b-green',Pruning:'b-blue',Panen:'b-orange'};
+  const jIcon={Herbisida:'🌿',Pupuk:'🌱',Pruning:'✂️',Panen:'🌴'};
   document.getElementById('list-lahan').innerHTML=cache.lahan.map(d=>{
     const umur=new Date().getFullYear()-(d.tahun||2015);const kb=d.kondisi==='Baik'?'b-green':d.kondisi==='Sedang'?'b-amber':'b-red';
     const jp=cache.jadwal.find(j=>j.lahan===d.nama&&j.jenis==='Panen'&&j.status==='pending');
-    return`<div class="item-card"><div class="item-title">${d.nama} <span class="badge ${kb}">${d.kondisi||'-'}</span></div><div class="item-sub">${d.ha||0} ha &nbsp;|&nbsp; ${fmt(d.pokok||0)} pokok &nbsp;|&nbsp; ${d.tahun||'-'} (${umur} thn)</div>${jp?`<div class="item-sub" style="color:var(--blue)">Panen berikutnya: <b>${jp.tanggal_due}</b></div>`:''} ${d.ket?`<div class="item-sub">${d.ket}</div>`:''}<div class="item-actions"><button class="btn-sm btn-gray" onclick="document.getElementById('l-nama').value='${d.nama}';isiFormLahan('${d.nama}');window.scrollTo(0,0)">Edit</button><button class="btn-sm btn-red" onclick="hapusLahan('${d.id}','${d.nama}')">Hapus</button></div></div>`;
+    // Gabungkan histori: panen dari realisasi + kegiatan dari log
+    const panenHist=(cache.realisasi||[]).filter(r=>r.lahan===d.nama).map(r=>({tanggal:r.tanggal,jenis:'Panen',detail:`${fmt(r.kg_aktual)} kg — ${fmtRp(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan)}`,biaya:0}));
+    const logHist=(cache.log||[]).filter(l=>l.lahan===d.nama).map(l=>({tanggal:l.tanggal,jenis:l.jenis,detail:l.detail||l.jenis,biaya:l.biaya||0,keterangan:l.keterangan}));
+    const allHist=[...panenHist,...logHist].sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal));
+    const histHTML=allHist.length
+      ?allHist.map((h,i)=>`<div style="display:flex;gap:10px;padding:7px 0;border-bottom:${i<allHist.length-1?'1px solid var(--border)':'none'}">
+          <div style="flex-shrink:0;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--bg3)">${jIcon[h.jenis]||'📌'}</div>
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="badge ${jColor[h.jenis]||'b-gray'}" style="font-size:10px">${h.jenis}</span>
+              <span style="font-size:11px;color:var(--text2)">${h.tanggal}</span>
+            </div>
+            <div style="font-size:12px;color:var(--text);margin-top:3px">${h.detail}</div>
+            ${h.keterangan?`<div style="font-size:11px;color:var(--text2)">${h.keterangan}</div>`:''}
+            ${h.biaya>0?`<div style="font-size:11px;color:var(--red)">Biaya: ${fmtRp(h.biaya)}</div>`:''}
+          </div>
+        </div>`).join('')
+      :'<div style="color:var(--text3);font-size:13px;padding:8px 0">Belum ada histori kegiatan</div>';
+    return`<div class="item-card">
+      <div class="item-title">${d.nama} <span class="badge ${kb}">${d.kondisi||'-'}</span></div>
+      <div class="item-sub">${d.ha||0} ha &nbsp;|&nbsp; ${fmt(d.pokok||0)} pokok &nbsp;|&nbsp; ${d.tahun||'-'} (${umur} thn)</div>
+      ${jp?`<div class="item-sub" style="color:var(--blue)">Panen berikutnya: <b>${jp.tanggal_due}</b></div>`:''}
+      ${d.ket?`<div class="item-sub">${d.ket}</div>`:''}
+      <div class="item-actions">
+        <button class="btn-sm btn-gray" onclick="togglePane('hist-${d.id}')">📋 Histori</button>
+        <button class="btn-sm btn-gray" onclick="document.getElementById('l-nama').value='${d.nama}';isiFormLahan('${d.nama}');window.scrollTo(0,0)">Edit</button>
+        <button class="btn-sm btn-red" onclick="hapusLahan('${d.id}','${d.nama}')">Hapus</button>
+      </div>
+      <div id="hist-${d.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Ringkasan Histori — ${d.nama} (${allHist.length} kegiatan)</div>
+        ${histHTML}
+      </div>
+    </div>`;
   }).join('');
 };
 const hapusLahan=async(id,nama)=>{const ok=await showConfirm(`Hapus lahan "${nama}"?`,'Hapus Lahan');if(!ok)return;try{await sb('lahan','DELETE',null,'id=eq.'+id);await reloadTable('lahan');refreshSelects();renderLahan();showToast(nama+' dihapus');}catch(e){showToast('Gagal hapus');}};
@@ -851,7 +885,23 @@ const renderJadwal=()=>{
         <button class="btn-sm btn-red" onclick="hapusItem('jadwal_aktif','${j.id}','Hapus jadwal ini?')">Hapus</button>
       </div>
       <div id="jview-${j.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;font-size:13px">
-        ${lastPanen?`<div class="info-row"><span style="color:var(--text2)">Panen terakhir</span><span style="font-weight:600">${lastPanen.tanggal}</span></div><div class="info-row"><span style="color:var(--text2)">Hasil</span><span style="font-weight:700;color:var(--green)">${fmt(lastPanen.kg_aktual)} kg</span></div><div class="info-row" style="border:none"><span style="color:var(--text2)">Pendapatan bersih</span><span style="color:var(--orange);font-weight:600">${fmtK(lastPanen.pendapatan_bersih!=null?lastPanen.pendapatan_bersih:lastPanen.pendapatan)}</span></div>`:'<div style="color:var(--text3);font-size:13px">Belum ada data panen</div>'}
+        ${isPanen
+          ? (lastPanen
+            ? `<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📊 Panen Terakhir</div>
+               <div class="info-row"><span style="color:var(--text2)">Tanggal panen</span><span style="font-weight:600">${lastPanen.tanggal}</span></div>
+               <div class="info-row"><span style="color:var(--text2)">Hasil</span><span style="font-weight:700;color:var(--green)">${fmt(lastPanen.kg_aktual)} kg</span></div>
+               <div class="info-row" style="border:none"><span style="color:var(--text2)">Pendapatan bersih</span><span style="color:var(--orange);font-weight:600">${fmtK(lastPanen.pendapatan_bersih!=null?lastPanen.pendapatan_bersih:lastPanen.pendapatan)}</span></div>`
+            : '<div style="color:var(--text3)">Belum ada data panen</div>')
+          : (()=>{
+              const riwLog=cache.log.filter(l=>l.lahan===j.lahan&&l.jenis===j.jenis).slice(0,5);
+              if(!riwLog.length)return`<div style="color:var(--text3)">Belum ada riwayat ${j.jenis} di lahan ini</div>`;
+              return`<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Riwayat ${j.jenis}</div>`
+                +riwLog.map((l,i)=>`<div class="info-row"${i===riwLog.length-1?'style="border:none"':''}>
+                  <div><span style="font-weight:600">${l.tanggal}</span><br><span style="color:var(--text2);font-size:11px">${l.detail||j.jenis}${l.keterangan?' — '+l.keterangan:''}</span></div>
+                  ${l.biaya>0?`<span style="color:var(--red);white-space:nowrap">${fmtRp(l.biaya)}</span>`:'<span style="color:var(--text3);font-size:11px">-</span>'}
+                </div>`).join('');
+            })()
+        }
       </div>
       ${formPanen}
     </div>`;
