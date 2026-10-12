@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v9.8</title>
+<title>Kebun Sawit v9.9</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -871,6 +871,35 @@ const tandaiSelesai=async id=>{
 };
 const filterJadwal=(mode,btn)=>{filterJadwalMode=mode;document.querySelectorAll('#jdw-filter-row .filter-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderJadwal();};
 const filterJadwalByJenis=(jenis,btn)=>{filterJadwalJenis=jenis;document.querySelectorAll('#jdw-filter-jenis-row .filter-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderJadwal();};
+const lihatRiwayatJadwal=async(id,lahan,jenis,isPanen)=>{
+  const el=document.getElementById('jview-'+id);if(!el)return;
+  const visible=el.style.display!=='none';
+  if(visible){el.style.display='none';return;}
+  el.style.display='block';
+  el.innerHTML='<div style="color:var(--text3);font-size:12px">Memuat…</div>';
+  // Selalu reload log_kegiatan agar data terkini
+  await reloadTable('log_kegiatan');
+  if(isPanen){
+    const lastPanen=[...cache.realisasi].filter(r=>r.lahan===lahan).sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal))[0];
+    el.innerHTML=lastPanen
+      ?`<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📊 Panen Terakhir</div>
+        <div class="info-row"><span style="color:var(--text2)">Tanggal panen</span><span style="font-weight:600">${lastPanen.tanggal}</span></div>
+        <div class="info-row"><span style="color:var(--text2)">Hasil</span><span style="font-weight:700;color:var(--green)">${fmt(lastPanen.kg_aktual)} kg</span></div>
+        <div class="info-row" style="border:none"><span style="color:var(--text2)">Pendapatan bersih</span><span style="color:var(--orange);font-weight:600">${fmtK(lastPanen.pendapatan_bersih!=null?lastPanen.pendapatan_bersih:lastPanen.pendapatan)}</span></div>`
+      :'<div style="color:var(--text3)">Belum ada data panen</div>';
+  } else {
+    const riwLog=(cache.log||[]).filter(l=>l.lahan===lahan&&l.jenis===jenis).sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal)).slice(0,5);
+    if(!riwLog.length){
+      el.innerHTML=`<div style="color:var(--text3)">Belum ada riwayat ${jenis} di lahan ini</div>`;
+    } else {
+      el.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Riwayat ${jenis} (${riwLog.length} terakhir)</div>`
+        +riwLog.map((l,i)=>`<div class="info-row"${i===riwLog.length-1?' style="border:none"':''}>
+          <div><span style="font-weight:600">${l.tanggal}</span><br><span style="color:var(--text2);font-size:11px">${l.detail||jenis}${l.keterangan?' — '+l.keterangan:''}</span></div>
+          ${l.biaya>0?`<span style="color:var(--red);white-space:nowrap">${fmtRp(l.biaya)}</span>`:'<span style="color:var(--text3);font-size:11px">-</span>'}
+        </div>`).join('');
+    }
+  }
+};
 const renderJadwal=()=>{
   let data=[...cache.jadwal].sort((a,b)=>new Date(a.tanggal_due)-new Date(b.tanggal_due));
   const today=new Date();today.setHours(0,0,0,0);
@@ -920,27 +949,11 @@ const renderJadwal=()=>{
       </div>
       <div class="item-actions">
         ${!selesai&&!isPanen?`<button class="btn-sm btn-green" onclick="tandaiSelesai('${j.id}')">✓ Selesai</button>`:''}
-        <button class="btn-sm btn-gray" onclick="togglePane('jview-${j.id}')">Lihat</button>
+        <button class="btn-sm btn-gray" onclick="lihatRiwayatJadwal('${j.id}','${j.lahan}','${j.jenis}',${isPanen})">Lihat</button>
         <button class="btn-sm btn-red" onclick="hapusItem('jadwal_aktif','${j.id}','Hapus jadwal ini?')">Hapus</button>
       </div>
       <div id="jview-${j.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;font-size:13px">
-        ${isPanen
-          ? (lastPanen
-            ? `<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📊 Panen Terakhir</div>
-               <div class="info-row"><span style="color:var(--text2)">Tanggal panen</span><span style="font-weight:600">${lastPanen.tanggal}</span></div>
-               <div class="info-row"><span style="color:var(--text2)">Hasil</span><span style="font-weight:700;color:var(--green)">${fmt(lastPanen.kg_aktual)} kg</span></div>
-               <div class="info-row" style="border:none"><span style="color:var(--text2)">Pendapatan bersih</span><span style="color:var(--orange);font-weight:600">${fmtK(lastPanen.pendapatan_bersih!=null?lastPanen.pendapatan_bersih:lastPanen.pendapatan)}</span></div>`
-            : '<div style="color:var(--text3)">Belum ada data panen</div>')
-          : (()=>{
-              const riwLog=cache.log.filter(l=>l.lahan===j.lahan&&l.jenis===j.jenis).slice(0,5);
-              if(!riwLog.length)return`<div style="color:var(--text3)">Belum ada riwayat ${j.jenis} di lahan ini</div>`;
-              return`<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Riwayat ${j.jenis}</div>`
-                +riwLog.map((l,i)=>`<div class="info-row"${i===riwLog.length-1?'style="border:none"':''}>
-                  <div><span style="font-weight:600">${l.tanggal}</span><br><span style="color:var(--text2);font-size:11px">${l.detail||j.jenis}${l.keterangan?' — '+l.keterangan:''}</span></div>
-                  ${l.biaya>0?`<span style="color:var(--red);white-space:nowrap">${fmtRp(l.biaya)}</span>`:'<span style="color:var(--text3);font-size:11px">-</span>'}
-                </div>`).join('');
-            })()
-        }
+        <div style="color:var(--text3);font-size:12px">Memuat…</div>
       </div>
       ${formPanen}
     </div>`;
