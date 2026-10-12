@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v9.9</title>
+<title>Kebun Sawit v9.9b</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -826,7 +826,12 @@ const simpanJadwalForm=async()=>{
   const ket=document.getElementById('jdw-kegiatan-ket').value;const satuan=document.getElementById('jdw-kegiatan-satuan').value;
   try{
     // 1. Simpan log kegiatan dulu
-    await sb('log_kegiatan','POST',{lahan,jenis,detail,tanggal:terakhir,biaya,keterangan:ket});
+    try{
+      await sb('log_kegiatan','POST',{lahan,jenis,detail,tanggal:terakhir,biaya,keterangan:ket});
+    }catch(logErr){
+      showToast('⚠️ Gagal simpan ke log_kegiatan: '+logErr.message+' — Pastikan tabel sudah dibuat di Supabase!');
+      console.error('log_kegiatan error:',logErr);
+    }
 
     // 2. Update jadwal lama yang sama jenis+lahan → ganti tanggal ke due berikutnya
     const jadwalLama=cache.jadwal.filter(j=>j.lahan===lahan&&j.jenis===jenis&&j.status==='pending');
@@ -878,7 +883,9 @@ const lihatRiwayatJadwal=async(id,lahan,jenis,isPanen)=>{
   el.style.display='block';
   el.innerHTML='<div style="color:var(--text3);font-size:12px">Memuat…</div>';
   // Selalu reload log_kegiatan agar data terkini
-  await reloadTable('log_kegiatan');
+  try{await reloadTable('log_kegiatan');}catch(e){
+    el.innerHTML=`<div style="color:var(--red);font-size:12px">⚠️ Tabel log_kegiatan tidak ditemukan di Supabase.<br>Buat dulu via SQL Editor.</div>`;return;
+  }
   if(isPanen){
     const lastPanen=[...cache.realisasi].filter(r=>r.lahan===lahan).sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal))[0];
     el.innerHTML=lastPanen
@@ -888,9 +895,16 @@ const lihatRiwayatJadwal=async(id,lahan,jenis,isPanen)=>{
         <div class="info-row" style="border:none"><span style="color:var(--text2)">Pendapatan bersih</span><span style="color:var(--orange);font-weight:600">${fmtK(lastPanen.pendapatan_bersih!=null?lastPanen.pendapatan_bersih:lastPanen.pendapatan)}</span></div>`
       :'<div style="color:var(--text3)">Belum ada data panen</div>';
   } else {
-    const riwLog=(cache.log||[]).filter(l=>l.lahan===lahan&&l.jenis===jenis).sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal)).slice(0,5);
+    const semuaLog=cache.log||[];
+    const riwLog=semuaLog.filter(l=>l.lahan===lahan&&l.jenis===jenis).sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal)).slice(0,5);
     if(!riwLog.length){
-      el.innerHTML=`<div style="color:var(--text3)">Belum ada riwayat ${jenis} di lahan ini</div>`;
+      // Tampil info debug: total log di cache & berapa yang ada untuk lahan ini
+      const totalLog=semuaLog.length;
+      const lahanLog=semuaLog.filter(l=>l.lahan===lahan).length;
+      el.innerHTML=`<div style="color:var(--text3)">Belum ada riwayat ${jenis} di lahan ini</div>
+        <div style="color:var(--text3);font-size:11px;margin-top:6px">
+          (Total log: ${totalLog} baris · Lahan ini: ${lahanLog} baris · Jenis: ${jenis})
+        </div>`;
     } else {
       el.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Riwayat ${jenis} (${riwLog.length} terakhir)</div>`
         +riwLog.map((l,i)=>`<div class="info-row"${i===riwLog.length-1?' style="border:none"':''}>
