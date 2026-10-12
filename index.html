@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v9.7</title>
+<title>Kebun Sawit v9.8</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -299,6 +299,13 @@ textarea:focus{border-color:var(--green)}
     <button class="filter-btn" onclick="filterJadwal('pending',this)">Upcoming</button>
     <button class="filter-btn" onclick="filterJadwal('selesai',this)">Selesai</button>
   </div>
+  <div class="filter-row" id="jdw-filter-jenis-row">
+    <button class="filter-btn active" onclick="filterJadwalByJenis('',this)">🌿 Semua jenis</button>
+    <button class="filter-btn" onclick="filterJadwalByJenis('Panen',this)">🌴 Panen</button>
+    <button class="filter-btn" onclick="filterJadwalByJenis('Pupuk',this)">🌱 Pupuk</button>
+    <button class="filter-btn" onclick="filterJadwalByJenis('Herbisida',this)">🪚 Herbisida</button>
+    <button class="filter-btn" onclick="filterJadwalByJenis('Pruning',this)">✂️ Pruning</button>
+  </div>
   <div id="jdw-summary" style="display:flex;gap:8px;margin-bottom:12px">
     <div class="metric" style="flex:1"><div class="metric-val" id="jdw-tot-terlewat" style="color:var(--red);font-size:18px">0</div><div class="metric-lbl">Terlewat</div></div>
     <div class="metric" style="flex:1"><div class="metric-val" id="jdw-tot-dekat" style="color:var(--orange);font-size:18px">0</div><div class="metric-lbl">Minggu ini</div></div>
@@ -476,7 +483,7 @@ const TABS=['dashboard','jadwal','catatan','modal','rekap','lahan'];
 let LAHAN_NAMES=[];
 let CORRECT_PIN='';
 let cache={lahan:[],realisasi:[],modal:[],jadwal:[],catatan:[],log:[]};
-let filterJadwalMode='semua';
+let filterJadwalMode='semua';let filterJadwalJenis='';
 
 const sb=async(table,method='GET',body=null,params='')=>{
   const url=SB_URL+'/rest/v1/'+table+(params?'?'+params:'');
@@ -863,6 +870,7 @@ const tandaiSelesai=async id=>{
   }catch(e){showToast('Gagal');}
 };
 const filterJadwal=(mode,btn)=>{filterJadwalMode=mode;document.querySelectorAll('#jdw-filter-row .filter-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderJadwal();};
+const filterJadwalByJenis=(jenis,btn)=>{filterJadwalJenis=jenis;document.querySelectorAll('#jdw-filter-jenis-row .filter-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderJadwal();};
 const renderJadwal=()=>{
   let data=[...cache.jadwal].sort((a,b)=>new Date(a.tanggal_due)-new Date(b.tanggal_due));
   const today=new Date();today.setHours(0,0,0,0);
@@ -874,7 +882,8 @@ const renderJadwal=()=>{
   else if(filterJadwalMode==='dekat')data=data.filter(j=>{const d=new Date(j.tanggal_due);const df=Math.round((d-today)/86400000);return j.status==='pending'&&df>=0&&df<=7;});
   else if(filterJadwalMode==='pending')data=data.filter(j=>j.status==='pending'&&new Date(j.tanggal_due)>=today);
   else if(filterJadwalMode==='selesai')data=data.filter(j=>j.status==='selesai');
-  if(!data.length){document.getElementById('list-jadwal').innerHTML='<div class="empty">Tidak ada jadwal</div>';return;}
+  if(filterJadwalJenis)data=data.filter(j=>j.jenis===filterJadwalJenis);
+  if(!data.length){document.getElementById('list-jadwal').innerHTML=`<div class="empty">Tidak ada jadwal${filterJadwalJenis?' untuk '+filterJadwalJenis:''}</div>`;return;}
   const jColor={Herbisida:'b-amber',Pupuk:'b-green',Pruning:'b-blue',Panen:'b-orange'};
   const jBorder={Herbisida:'#BA7517',Pupuk:'#1D9E75',Pruning:'#185FA5',Panen:'#E67E22'};
   document.getElementById('list-jadwal').innerHTML=data.map(j=>{
