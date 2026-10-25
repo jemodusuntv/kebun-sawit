@@ -561,7 +561,19 @@ const loadAll=async(force=false)=>{
     cache={lahan,realisasi,modal,jadwal,catatan,log};saveCache();setConn(true);refreshSelects();renderDashboard();
   }catch(e){setConn(false);if(loadCacheLocal())showToast('Offline — data terakhir ditampilkan');}
 };
-const updateCacheTable=(table,data)=>{if(table==='lahan')cache.lahan=data;else if(table==='realisasi_panen')cache.realisasi=data;else if(table==='modal')cache.modal=data;else if(table==='jadwal_aktif')cache.jadwal=data;else if(table==='catatan_lapangan')cache.catatan=data;else if(table==='log_kegiatan')cache.log=data;saveCache();};
+const dedupById=(arr)=>{const seen=new Set();return arr.filter(x=>{if(!x.id||seen.has(x.id))return false;seen.add(x.id);return true;});};
+const dedupRealisasi=(arr)=>{// Dedup by id dulu, lalu ambil 1 per lahan+tanggal (yang terbaru created_at)
+  const byId=dedupById(arr);
+  const map={};byId.forEach(r=>{const k=r.lahan+'|'+r.tanggal;if(!map[k]||r.created_at>map[k].created_at)map[k]=r;});return Object.values(map);};
+const updateCacheTable=(table,data)=>{
+  if(table==='lahan')cache.lahan=dedupById(data);
+  else if(table==='realisasi_panen')cache.realisasi=dedupRealisasi(data);
+  else if(table==='modal')cache.modal=dedupById(data);
+  else if(table==='jadwal_aktif')cache.jadwal=dedupById(data);
+  else if(table==='catatan_lapangan')cache.catatan=dedupById(data);
+  else if(table==='log_kegiatan')cache.log=dedupById(data);
+  saveCache();
+};
 const reloadTable=async(table)=>{const params={lahan:'order=nama',realisasi_panen:'order=tanggal.desc',modal:'order=tanggal.desc',jadwal_aktif:'order=tanggal_due',catatan_lapangan:'order=tanggal.desc,created_at.desc',log_kegiatan:'order=tanggal.desc,created_at.desc'};const fresh=await sb(table,'GET',null,params[table]||'');updateCacheTable(table,fresh);return fresh;};
 
 const refreshSelects=()=>{
