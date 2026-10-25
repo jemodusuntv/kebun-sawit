@@ -1214,9 +1214,9 @@ const renderRekap=()=>{
     });
   });
 
-  // Ringkasan keseluruhan
-  const reaAll=cache.realisasi.filter(r=>!lahanFilter||r.lahan===lahanFilter);
-  const modAll=cache.modal.filter(m=>!lahanFilter||m.lahan===lahanFilter);
+  // Ringkasan keseluruhan (filter tahun + lahan)
+  const reaAll=cache.realisasi.filter(r=>new Date(r.tanggal).getFullYear()===tahun&&(!lahanFilter||r.lahan===lahanFilter));
+  const modAll=cache.modal.filter(m=>new Date(m.tanggal).getFullYear()===tahun&&(!lahanFilter||m.lahan===lahanFilter));
   const totKg=reaAll.reduce((a,r)=>a+(r.kg_aktual||0),0);
   const totBersih=reaAll.reduce((a,r)=>a+(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan||0),0);
   const totModal=modAll.reduce((a,m)=>a+(m.total||0),0);
