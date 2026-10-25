@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit v9.9b</title>
+<title>Kebun Sawit v10.0</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -599,7 +599,7 @@ const initSwipe=()=>{
 };
 const hapusItem=async(table,id,msg='Hapus data ini?')=>{
   const ok=await showConfirm(msg,'Konfirmasi Hapus');if(!ok)return;
-  try{await sb(table,'DELETE',null,'id=eq.'+id);await reloadTable(table);const renders={modal:renderModal,jadwal_aktif:renderJadwal,catatan_lapangan:renderCatatan};if(renders[table])renders[table]();renderDashboard();showToast('Data dihapus');}
+  try{await sb(table,'DELETE',null,'id=eq.'+id);await reloadTable(table);const renders={modal:renderModal,jadwal_aktif:renderJadwal,catatan_lapangan:renderCatatan,log_kegiatan:renderLahan};if(renders[table])renders[table]();renderDashboard();showToast('Data dihapus');}
   catch(e){showToast('Gagal hapus');}
 };
 const togglePane=(showId)=>{const el=document.getElementById(showId);if(!el)return;el.style.display=el.style.display==='none'?'block':'none';};
@@ -715,8 +715,8 @@ const renderLahan=()=>{
     const umur=new Date().getFullYear()-(d.tahun||2015);const kb=d.kondisi==='Baik'?'b-green':d.kondisi==='Sedang'?'b-amber':'b-red';
     const jp=cache.jadwal.find(j=>j.lahan===d.nama&&j.jenis==='Panen'&&j.status==='pending');
     // Gabungkan histori: panen dari realisasi + kegiatan dari log
-    const panenHist=(cache.realisasi||[]).filter(r=>r.lahan===d.nama).map(r=>({tanggal:r.tanggal,jenis:'Panen',detail:`${fmt(r.kg_aktual)} kg — ${fmtRp(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan)}`,biaya:0}));
-    const logHist=(cache.log||[]).filter(l=>l.lahan===d.nama).map(l=>({tanggal:l.tanggal,jenis:l.jenis,detail:l.detail||l.jenis,biaya:l.biaya||0,keterangan:l.keterangan}));
+    const panenHist=(cache.realisasi||[]).filter(r=>r.lahan===d.nama).map(r=>({id:r.id,tanggal:r.tanggal,jenis:'Panen',detail:`${fmt(r.kg_aktual)} kg — ${fmtRp(r.pendapatan_bersih!=null?r.pendapatan_bersih:r.pendapatan)}`,biaya:0,isPanen:true}));
+    const logHist=(cache.log||[]).filter(l=>l.lahan===d.nama).map(l=>({id:l.id,tanggal:l.tanggal,jenis:l.jenis,detail:l.detail||l.jenis,biaya:l.biaya||0,keterangan:l.keterangan,isPanen:false}));
     const allHist=[...panenHist,...logHist].sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal));
     const histHTML=allHist.length
       ?allHist.map((h,i)=>`<div style="display:flex;gap:10px;padding:7px 0;border-bottom:${i<allHist.length-1?'1px solid var(--border)':'none'}">
@@ -724,7 +724,10 @@ const renderLahan=()=>{
           <div style="flex:1">
             <div style="display:flex;justify-content:space-between;align-items:center">
               <span class="badge ${jColor[h.jenis]||'b-gray'}" style="font-size:10px">${h.jenis}</span>
+              <div style="display:flex;align-items:center;gap:6px">
               <span style="font-size:11px;color:var(--text2)">${h.tanggal}</span>
+              <button onclick="${h.isPanen?`hapusPanenById('${h.id}','${d.nama}','${h.tanggal}')`:`hapusItem('log_kegiatan','${h.id}','Hapus riwayat ini?')`}" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:0 2px;line-height:1" title="Hapus">🗑</button>
+              </div>
             </div>
             <div style="font-size:12px;color:var(--text);margin-top:3px">${h.detail}</div>
             ${h.keterangan?`<div style="font-size:11px;color:var(--text2)">${h.keterangan}</div>`:''}
@@ -793,11 +796,28 @@ const updateDetailJadwal=()=>{
   if(satuanEl){if(jenis==='Herbisida')satuanEl.value='liter';else if(jenis==='Pupuk')satuanEl.value='kg';else satuanEl.value='HOK';}
   if(!isPanen){const sel=document.getElementById('jdw-detail');sel.innerHTML=(DETAIL_JADWAL[jenis]||[]).map(d=>`<option value="${d.label}" data-interval="${d.interval}">${d.label} (${d.interval} bln)</option>`).join('');updateIntervalJadwal();}
 };
+const cekDuplikatPanen=(lahan,tanggal)=>{
+  return (cache.realisasi||[]).some(r=>r.lahan===lahan&&r.tanggal===tanggal);
+};
+const hapusPanenById=async(id,lahan,tanggal)=>{
+  const ok=await showConfirm(`Hapus data panen ${lahan} tgl ${tanggal}?`,'Hapus Panen');
+  if(!ok)return;
+  try{
+    await sb('realisasi_panen','DELETE',null,'id=eq.'+id);
+    await reloadTable('realisasi_panen');renderLahan();renderDashboard();
+    showToast('Data panen dihapus');
+  }catch(e){showToast('Gagal hapus: '+e.message);}
+};
 const simpanPanenInline=async()=>{
   const lahan=document.getElementById('jdw-lahan').value;if(!lahan){showToast('Pilih lahan');return;}
   const tanggal=document.getElementById('fp-tanggal').value;if(!tanggal){showToast('Isi tanggal panen');return;}
   const kg=parseFloat(document.getElementById('fp-kg').value)||0;if(!kg){showToast('Isi berat aktual');return;}
   const harga=parseInt(document.getElementById('fp-harga').value)||0;if(!harga){showToast('Isi harga aktual');return;}
+  // Cek duplikat
+  if(cekDuplikatPanen(lahan,tanggal)){
+    const lanjut=await showConfirm(`⚠️ Data panen ${lahan} tgl ${tanggal} sudah ada!\nLanjut simpan lagi?`,'Duplikat Terdeteksi');
+    if(!lanjut)return;
+  }
   const upah_panen=parseInt(document.getElementById('fp-upah').value)||0;
   const pendapatan=Math.round(kg*harga),total_upah=Math.round(kg*upah_panen),pendapatan_bersih=pendapatan-total_upah;
   try{
@@ -978,6 +998,11 @@ const simpanPanenDariJadwal=async(jadwalId,lahan)=>{
   const tanggal=document.getElementById('fp-tgl-'+jadwalId).value;const kg=parseFloat(document.getElementById('fp-kg-'+jadwalId).value)||0;
   const harga=parseInt(document.getElementById('fp-harga-'+jadwalId).value)||0;const upah_panen=parseInt(document.getElementById('fp-upah-'+jadwalId).value)||0;
   if(!tanggal){showToast('Isi tanggal panen');return;}if(!kg){showToast('Isi berat aktual');return;}if(!harga){showToast('Isi harga aktual');return;}
+  // Cek duplikat
+  if(cekDuplikatPanen(lahan,tanggal)){
+    const lanjut=await showConfirm(`⚠️ Data panen ${lahan} tgl ${tanggal} sudah ada!\nLanjut simpan lagi?`,'Duplikat Terdeteksi');
+    if(!lanjut)return;
+  }
   const pendapatan=Math.round(kg*harga),total_upah=Math.round(kg*upah_panen),pendapatan_bersih=pendapatan-total_upah;
   try{
     await sb('realisasi_panen','POST',{lahan,tanggal,kg_aktual:kg,harga_aktual:harga,upah_panen,total_upah,pendapatan,pendapatan_bersih,keterangan:document.getElementById('fp-ket-'+jadwalId).value});
