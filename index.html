@@ -1612,7 +1612,8 @@ const kalenderNav=(dir)=>{_kalBulan+=dir;if(_kalBulan>11){_kalBulan=0;_kalTahun+
 
 const renderKalender=()=>{
   const today=new Date();today.setHours(0,0,0,0);
-  const todayStr=today.toISOString().slice(0,10);
+  const _td=today;
+  const todayStr=`${_td.getFullYear()}-${String(_td.getMonth()+1).padStart(2,'0')}-${String(_td.getDate()).padStart(2,'0')}`;
   document.getElementById('kal-title').textContent=MNI[_kalBulan]+' '+_kalTahun;
 
   // Kumpulkan semua event: dari jadwal_aktif (upcoming) + realisasi_panen + log_kegiatan
