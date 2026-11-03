@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kebun Sawit">
-<title>Kebun Sawit V1</title>
+<title>Kebun Sawit v1</title>
 <style>
 :root{
   --bg:#f5f5f0;--bg2:#fff;--bg3:#f0f0eb;
@@ -906,11 +906,12 @@ const bukaDetailLahan=(nama)=>{
       }
     }
   });
-  // Gabung, dedup — log nyata menang atas estimasi jadwal
-  const logKeys=new Set(logHist.map(l=>l.tanggal+'|'+l.jenis+'|'+(l.detail||'').split('—')[0].trim().toLowerCase()));
+  // Gabung, dedup — kalau sudah ada log nyata dengan jenis+detail yang sama, skip estimasi
+  // Pakai key jenis+detail saja (tanpa tanggal) agar selisih 1-2 hari tidak bikin duplikat
+  const logJenisDetail=new Set(logHist.map(l=>l.jenis+'|'+(l.detail||'').split('—')[0].trim().toLowerCase()));
   const jadwalRiwayatBersih=jadwalRiwayat.filter(j=>{
-    const k=j.tanggal+'|'+j.jenis+'|'+(j.detail||'').trim().toLowerCase();
-    return!logKeys.has(k);
+    const k=j.jenis+'|'+(j.detail||'').trim().toLowerCase();
+    return!logJenisDetail.has(k);
   });
   const allHist=[...panenHist,...logHist,...jadwalRiwayatBersih].sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
 
