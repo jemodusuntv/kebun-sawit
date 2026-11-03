@@ -284,30 +284,33 @@ textarea:focus{border-color:var(--green)}
       <button class="btn btn-green" onclick="simpanPanenInline()">🌿 Simpan hasil panen</button>
     </div>
     <div id="form-jadwal-biasa" style="display:none">
-      <div class="form-group"><label>Detail</label><select id="jdw-detail" onchange="updateIntervalJadwal()"></select></div>
-      <div class="form-group"><label>Tanggal terakhir dilakukan</label><input type="date" id="jdw-terakhir"></div>
+      <div style="background:var(--badge-green-bg);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--green);font-weight:600">
+        📝 Catat kegiatan hari ini → jadwal berikutnya otomatis terbentuk
+      </div>
+      <div class="form-group"><label>Jenis produk / kegiatan</label><select id="jdw-detail" onchange="updateIntervalJadwal()"></select></div>
+      <div class="form-group"><label>Tanggal kegiatan</label><input type="date" id="jdw-terakhir"></div>
       <div class="grid2">
-        <div class="form-group"><label>Interval (bulan) — otomatis</label><input type="number" id="jdw-interval" readonly style="background:var(--bg3);color:var(--green);font-weight:700"></div>
-        <div class="form-group"><label>Jatuh tempo (otomatis)</label><input type="text" id="jdw-due-preview" readonly style="background:var(--bg3);color:var(--orange);font-weight:700" placeholder="—"></div>
+        <div class="form-group"><label>Jumlah (kg / liter / HOK)</label><input type="number" id="jdw-kegiatan-qty" placeholder="cth: 25" min="0" step="0.5" oninput="hitungBiayaOtomatis()"></div>
+        <div class="form-group"><label>Harga satuan (Rp)</label><input type="number" id="jdw-kegiatan-harga" placeholder="cth: 8500" min="0" oninput="hitungBiayaOtomatis()"></div>
       </div>
-      <div id="form-kegiatan-biaya" style="display:none;background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:8px">
-        <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px">Catat biaya kegiatan sekaligus →</div>
-        <div class="grid2">
-          <div class="form-group"><label>Biaya (Rp)</label><input type="number" id="jdw-kegiatan-biaya" placeholder="cth: 500000" min="0"></div>
-          <div class="form-group"><label>Satuan</label>
-            <select id="jdw-kegiatan-satuan">
-              <option value="HOK">HOK</option>
-              <option value="kavling">Kavling</option>
-              <option value="kg">kg</option>
-              <option value="liter">liter</option>
-              <option value="paket">Paket</option>
-            </select>
-          </div>
+      <div class="grid2">
+        <div class="form-group"><label>Total biaya (Rp)</label><input type="number" id="jdw-kegiatan-biaya" placeholder="otomatis / isi manual" min="0"></div>
+        <div class="form-group"><label>Satuan</label>
+          <select id="jdw-kegiatan-satuan">
+            <option value="kg">kg</option>
+            <option value="liter">liter</option>
+            <option value="HOK">HOK</option>
+            <option value="kavling">Kavling</option>
+            <option value="paket">Paket</option>
+          </select>
         </div>
-        <div class="form-group"><label>Keterangan</label><input type="text" id="jdw-kegiatan-ket" placeholder="cth: 3 orang, 2 hari"></div>
       </div>
-      <button class="btn btn-green" onclick="simpanJadwalForm()">Simpan jadwal</button>
-      <button class="btn btn-gray" style="margin-top:6px;font-size:12px" onclick="isiContohPupuk()">🧪 Isi contoh data pupuk (tanggal lama)</button>
+      <div class="form-group"><label>Keterangan (opsional)</label><input type="text" id="jdw-kegiatan-ket" placeholder="cth: 3 orang, cuaca cerah"></div>
+      <div class="grid2" style="margin-bottom:10px">
+        <div class="form-group" style="margin:0"><label>Interval (bulan)</label><input type="number" id="jdw-interval" readonly style="background:var(--bg3);color:var(--green);font-weight:700"></div>
+        <div class="form-group" style="margin:0"><label>Jadwal berikutnya</label><input type="text" id="jdw-due-preview" readonly style="background:var(--bg3);color:var(--orange);font-weight:700" placeholder="—"></div>
+      </div>
+      <button class="btn btn-green" onclick="simpanJadwalForm()">💾 Catat &amp; Set Jadwal Berikutnya</button>
     </div>
   </div>
   <div class="filter-row" id="jdw-filter-row">
@@ -849,15 +852,12 @@ const isiContohPupuk=()=>{
   // Biaya contoh
   if(biayaEl)biayaEl.value='250000';
   if(ketEl)ketEl.value='Data contoh — pupuk awal';
-  // Tampilkan form biaya
-  const fb=document.getElementById('form-kegiatan-biaya');if(fb)fb.style.display='block';
   showToast('Form diisi data contoh pupuk — klik Simpan untuk menyimpan');
 };
 const updateDetailJadwal=()=>{
   const jenis=document.getElementById('jdw-jenis').value;const isPanen=jenis==='Panen';
   document.getElementById('form-panen-inline').style.display=isPanen?'block':'none';
   document.getElementById('form-jadwal-biasa').style.display=isPanen?'none':'block';
-  const formBiaya=document.getElementById('form-kegiatan-biaya');if(formBiaya)formBiaya.style.display=isPanen?'none':'block';
   const satuanEl=document.getElementById('jdw-kegiatan-satuan');
   if(satuanEl){if(jenis==='Herbisida')satuanEl.value='liter';else if(jenis==='Pupuk')satuanEl.value='kg';else satuanEl.value='HOK';}
   if(!isPanen){const sel=document.getElementById('jdw-detail');sel.innerHTML=(DETAIL_JADWAL[jenis]||[]).map(d=>`<option value="${d.label}" data-interval="${d.interval}">${d.label} (${d.interval} bln)</option>`).join('');updateIntervalJadwal();}
@@ -909,6 +909,13 @@ const simpanPanenInline=async()=>{
     unlockSubmit(lockKey);
   }catch(e){unlockSubmit(lockKey);showToast('Gagal: '+e.message);}
 };
+const hitungBiayaOtomatis=()=>{
+  const qty=parseFloat(document.getElementById('jdw-kegiatan-qty')?.value)||0;
+  const harga=parseInt(document.getElementById('jdw-kegiatan-harga')?.value)||0;
+  const biayaEl=document.getElementById('jdw-kegiatan-biaya');
+  if(qty&&harga&&biayaEl&&!biayaEl.value){biayaEl.placeholder='Otomatis: '+fmtK(qty*harga);}
+  if(qty&&harga&&biayaEl)biayaEl.value=Math.round(qty*harga);
+};
 const updateIntervalJadwal=()=>{const sel=document.getElementById('jdw-detail');const opt=sel.options[sel.selectedIndex];document.getElementById('jdw-interval').value=opt?opt.getAttribute('data-interval'):'';hitungDueDate();};
 const hitungDueDate=()=>{const terakhir=document.getElementById('jdw-terakhir').value;const interval=parseInt(document.getElementById('jdw-interval').value)||0;if(!terakhir||!interval){document.getElementById('jdw-due-preview').value='—';return;}const d=new Date(terakhir+'T00:00:00');d.setMonth(d.getMonth()+interval);document.getElementById('jdw-due-preview').value=d.toISOString().slice(0,10);};
 const simpanJadwal=async(lahan,jenis,detail,due,interval,sumber='manual')=>{await sb('jadwal_aktif','POST',{lahan,jenis,detail:detail||jenis,tanggal_due:due,interval_bulan:parseInt(interval)||null,status:'pending',sumber});};
@@ -922,11 +929,18 @@ const simpanJadwalForm=async()=>{
   if(!lockSubmit(lockKey)){showToast('⏳ Sedang menyimpan, harap tunggu…');return;}
   const katMap={Herbisida:'Herbisida',Pupuk:'Pupuk',Pruning:'Pruning'};
   const biaya=parseInt(document.getElementById('jdw-kegiatan-biaya').value)||0;
-  const ket=document.getElementById('jdw-kegiatan-ket').value;const satuan=document.getElementById('jdw-kegiatan-satuan').value;
+  const qty=parseFloat(document.getElementById('jdw-kegiatan-qty')?.value)||0;
+  const harga=parseInt(document.getElementById('jdw-kegiatan-harga')?.value)||0;
+  const ket=document.getElementById('jdw-kegiatan-ket').value;
+  const satuan=document.getElementById('jdw-kegiatan-satuan').value;
+  // Susun detail lengkap untuk log
+  let detailLog=detail;
+  if(qty>0)detailLog+=` — ${qty} ${satuan}`;
+  if(harga>0)detailLog+=` @ Rp${fmt(harga)}/${satuan}`;
   try{
     // 1. Simpan log kegiatan dulu
     try{
-      await sb('log_kegiatan','POST',{lahan,jenis,detail,tanggal:terakhir,biaya,keterangan:ket});
+      await sb('log_kegiatan','POST',{lahan,jenis,detail:detailLog,tanggal:terakhir,biaya,keterangan:ket||''});
     }catch(logErr){
       showToast('⚠️ Gagal simpan ke log_kegiatan: '+logErr.message+' — Pastikan tabel sudah dibuat di Supabase!');
       console.error('log_kegiatan error:',logErr);
@@ -951,8 +965,14 @@ const simpanJadwalForm=async()=>{
 
     await reloadTable('jadwal_aktif');await reloadTable('log_kegiatan');renderJadwal();renderDashboard();
     showToast('✅ '+jenis+' '+lahan+' dicatat — jadwal berikutnya: '+due);
-    document.getElementById('jdw-kegiatan-biaya').value='';document.getElementById('jdw-kegiatan-ket').value='';
-    document.getElementById('jdw-terakhir').value=todayStr();document.getElementById('jdw-due-preview').value='—';document.getElementById('jdw-lahan').value='';updateDetailJadwal();
+    document.getElementById('jdw-kegiatan-biaya').value='';
+    document.getElementById('jdw-kegiatan-ket').value='';
+    const qtyEl2=document.getElementById('jdw-kegiatan-qty');if(qtyEl2)qtyEl2.value='';
+    const hrgEl2=document.getElementById('jdw-kegiatan-harga');if(hrgEl2)hrgEl2.value='';
+    document.getElementById('jdw-terakhir').value=todayStr();
+    document.getElementById('jdw-due-preview').value='—';
+    document.getElementById('jdw-lahan').value='';
+    updateDetailJadwal();
     unlockSubmit(lockKey);
   }catch(e){unlockSubmit(lockKey);showToast('Gagal: '+e.message);}
 };
