@@ -956,23 +956,77 @@ const simpanJadwalForm=async()=>{
     unlockSubmit(lockKey);
   }catch(e){unlockSubmit(lockKey);showToast('Gagal: '+e.message);}
 };
+const toggleFormSelesai=(id)=>{
+  const f=document.getElementById('fselesai-'+id);if(!f)return;
+  f.style.display=f.style.display==='none'?'block':'none';
+  // Auto-hitung biaya saat form dibuka
+  if(f.style.display==='block'){
+    const qtyEl=document.getElementById('fs-qty-'+id);
+    const hEl=document.getElementById('fs-harga-'+id);
+    const bEl=document.getElementById('fs-biaya-'+id);
+    if(qtyEl&&hEl&&bEl){
+      const autoHitung=()=>{const q=parseFloat(qtyEl.value)||0;const h=parseInt(hEl.value)||0;if(q&&h)bEl.placeholder='Otomatis: '+fmt(q*h);};
+      qtyEl.addEventListener('input',autoHitung);hEl.addEventListener('input',autoHitung);
+    }
+  }
+};
 const tandaiSelesai=async id=>{
   const j=cache.jadwal.find(x=>x.id===id);if(!j)return;
+  const lockKey='selesai-'+id;
+  if(!lockSubmit(lockKey)){showToast('⏳ Sedang menyimpan…');return;}
   try{
+    const now=new Date();
+    const todayLocal=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+    // Ambil data dari mini-form jika ada
+    const detailEl=document.getElementById('fs-detail-'+id);
+    const qtyEl=document.getElementById('fs-qty-'+id);
+    const hargaEl=document.getElementById('fs-harga-'+id);
+    const biayaEl=document.getElementById('fs-biaya-'+id);
+    const ketEl=document.getElementById('fs-ket-'+id);
+
+    const detailVal=detailEl?detailEl.value.trim()||j.detail||j.jenis:j.detail||j.jenis;
+    const qty=qtyEl?parseFloat(qtyEl.value)||0:0;
+    const harga=hargaEl?parseInt(hargaEl.value)||0:0;
+    const biayaManual=biayaEl?parseInt(biayaEl.value)||0:0;
+    const biayaAuto=qty&&harga?Math.round(qty*harga):0;
+    const totalBiaya=biayaManual||biayaAuto;
+    const ketVal=ketEl?ketEl.value.trim():'';
+
+    // Susun detail lengkap untuk log
+    let detailLog=detailVal;
+    if(qty>0)detailLog+=` — ${qty} kg`;
+    if(harga>0)detailLog+=` @ Rp${fmt(harga)}/kg`;
+
+    // Susun keterangan
+    let ketLog='Dicatat via tombol Selesai';
+    if(ketVal)ketLog=ketVal;
+
+    // 1. Simpan ke log_kegiatan
+    try{
+      await sb('log_kegiatan','POST',{
+        lahan:j.lahan,
+        jenis:j.jenis,
+        detail:detailLog,
+        tanggal:todayLocal,
+        biaya:totalBiaya,
+        keterangan:ketLog
+      });
+    }catch(logErr){console.error('log error:',logErr);}
+
     if(j.interval_bulan){
-      // Hitung tanggal berikutnya dari hari ini
       const nd=new Date();nd.setMonth(nd.getMonth()+parseInt(j.interval_bulan));
-      const ndStr=nd.toISOString().slice(0,10);
-      // Update jadwal ini langsung ke tanggal berikutnya (reset ke pending)
+      const ndStr=`${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}-${String(nd.getDate()).padStart(2,'0')}`;
       await sb('jadwal_aktif','PATCH',{status:'pending',tanggal_due:ndStr},'id=eq.'+id);
-      showToast('Jadwal berikutnya: '+ndStr);
+      const biayaInfo=totalBiaya>0?` · biaya ${fmtK(totalBiaya)}`:'';
+      showToast('✅ '+j.jenis+' '+j.lahan+' selesai'+biayaInfo+' — berikutnya: '+ndStr);
     } else {
-      // Tidak ada interval — tandai selesai saja
       await sb('jadwal_aktif','PATCH',{status:'selesai'},'id=eq.'+id);
-      showToast('Jadwal selesai');
+      showToast('✅ '+j.jenis+' '+j.lahan+' selesai');
     }
-    await reloadTable('jadwal_aktif');renderJadwal();renderDashboard();
-  }catch(e){showToast('Gagal');}
+    await reloadTable('jadwal_aktif');await reloadTable('log_kegiatan');renderJadwal();renderDashboard();
+    unlockSubmit(lockKey);
+  }catch(e){unlockSubmit(lockKey);showToast('Gagal: '+e.message);}
 };
 const filterJadwal=(mode,btn)=>{filterJadwalMode=mode;document.querySelectorAll('#jdw-filter-row .filter-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderJadwal();};
 const filterJadwalByJenis=(jenis,btn)=>{filterJadwalJenis=jenis;document.querySelectorAll('#jdw-filter-jenis-row .filter-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderJadwal();};
@@ -1006,11 +1060,27 @@ const lihatRiwayatJadwal=async(id,lahan,jenis,isPanen)=>{
           (Total log: ${totalLog} baris · Lahan ini: ${lahanLog} baris · Jenis: ${jenis})
         </div>`;
     } else {
-      el.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Riwayat ${jenis} (${riwLog.length} terakhir)</div>`
-        +riwLog.map((l,i)=>`<div class="info-row"${i===riwLog.length-1?' style="border:none"':''}>
-          <div><span style="font-weight:600">${l.tanggal}</span><br><span style="color:var(--text2);font-size:11px">${l.detail||jenis}${l.keterangan?' — '+l.keterangan:''}</span></div>
-          ${l.biaya>0?`<span style="color:var(--red);white-space:nowrap">${fmtRp(l.biaya)}</span>`:'<span style="color:var(--text3);font-size:11px">-</span>'}
-        </div>`).join('');
+      // Hitung total biaya semua riwayat
+      const totalBiayaLog=riwLog.reduce((s,l)=>s+(l.biaya||0),0);
+      const lastLog=riwLog[0];
+      el.innerHTML=`
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Riwayat ${jenis} — ${riwLog.length} kegiatan terakhir</div>
+        ${riwLog.map((l,i)=>{
+          // Parse detail: "NPK Majemuk — 25 kg @ Rp8.500/kg"
+          const parts=l.detail||jenis;
+          return`<div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:6px${i===riwLog.length-1?';margin-bottom:0':''}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <span style="font-weight:700;color:var(--text)">${l.tanggal}</span>
+              ${l.biaya>0?`<span style="color:var(--red);font-weight:700;font-size:13px">${fmtK(l.biaya)}</span>`:'<span style="color:var(--text3);font-size:11px">Gratis</span>'}
+            </div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:${l.keterangan?'3px':'0'}">${parts}</div>
+            ${l.keterangan&&l.keterangan!=='Dicatat via tombol Selesai'?`<div style="font-size:11px;color:var(--text3);font-style:italic">${l.keterangan}</div>`:''}
+          </div>`;
+        }).join('')}
+        ${totalBiayaLog>0?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px">
+          <span style="color:var(--text2)">Total biaya (${riwLog.length}×)</span>
+          <span style="font-weight:700;color:var(--red)">${fmtK(totalBiayaLog)}</span>
+        </div>`:''}`;
     }
   }
 };
@@ -1062,10 +1132,43 @@ const renderJadwal=()=>{
         <span class="badge ${selesai?'b-gray':st.cls}" style="flex-shrink:0;margin-left:8px;white-space:nowrap">${selesai?'Selesai':st.label}</span>
       </div>
       <div class="item-actions">
-        ${!selesai&&!isPanen?`<button class="btn-sm btn-green" onclick="tandaiSelesai('${j.id}')">✓ Selesai</button>`:''}
+        ${!selesai&&!isPanen?`<button class="btn-sm btn-green" onclick="toggleFormSelesai('${j.id}')">✓ Selesai</button>`:''}
+        ${isPanen&&!selesai?`<button class="btn-sm btn-orange" onclick="document.getElementById('form-panen-${j.id}').style.display=document.getElementById('form-panen-${j.id}').style.display==='none'?'block':'none'">🌿 Input Panen</button>`:''}
         <button class="btn-sm btn-gray" onclick="lihatRiwayatJadwal('${j.id}','${j.lahan}','${j.jenis}',${isPanen})">Lihat</button>
         <button class="btn-sm btn-red" onclick="hapusItem('jadwal_aktif','${j.id}','Hapus jadwal ini?')">Hapus</button>
       </div>
+      <!-- Mini-form Selesai untuk non-panen -->
+      ${!selesai&&!isPanen?`<div id="fselesai-${j.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📝 Catat kegiatan: ${j.jenis}</div>
+        <div class="grid2" style="margin-bottom:8px">
+          <div class="form-group" style="margin:0">
+            <label>Nama produk / detail</label>
+            <input type="text" id="fs-detail-${j.id}" placeholder="cth: NPK Majemuk 16-16-16" value="${j.detail||''}">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Jumlah (kg / liter)</label>
+            <input type="number" id="fs-qty-${j.id}" placeholder="cth: 25" min="0" step="0.5">
+          </div>
+        </div>
+        <div class="grid2" style="margin-bottom:8px">
+          <div class="form-group" style="margin:0">
+            <label>Harga satuan (Rp/kg)</label>
+            <input type="number" id="fs-harga-${j.id}" placeholder="cth: 8500" min="0">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Total biaya (Rp)</label>
+            <input type="number" id="fs-biaya-${j.id}" placeholder="otomatis / isi manual" min="0">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:8px">
+          <label>Keterangan tambahan</label>
+          <input type="text" id="fs-ket-${j.id}" placeholder="cth: aplikasi merata, cuaca cerah">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-green btn-sm" style="flex:1" onclick="tandaiSelesai('${j.id}')">✅ Simpan & Selesai</button>
+          <button class="btn btn-gray btn-sm" onclick="document.getElementById('fselesai-${j.id}').style.display='none'">Batal</button>
+        </div>
+      </div>`:''}
       <div id="jview-${j.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;font-size:13px">
         <div style="color:var(--text3);font-size:12px">Memuat…</div>
       </div>
