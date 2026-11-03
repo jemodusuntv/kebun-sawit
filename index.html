@@ -1152,43 +1152,10 @@ const renderJadwal=()=>{
         <span class="badge ${selesai?'b-gray':st.cls}" style="flex-shrink:0;margin-left:8px;white-space:nowrap">${selesai?'Selesai':st.label}</span>
       </div>
       <div class="item-actions">
-        ${!selesai&&!isPanen?`<button class="btn-sm btn-green" onclick="toggleFormSelesai('${j.id}')">✓ Selesai</button>`:''}
         ${isPanen&&!selesai?`<button class="btn-sm btn-orange" onclick="document.getElementById('form-panen-${j.id}').style.display=document.getElementById('form-panen-${j.id}').style.display==='none'?'block':'none'">🌿 Input Panen</button>`:''}
-        <button class="btn-sm btn-gray" onclick="lihatRiwayatJadwal('${j.id}','${j.lahan}','${j.jenis}',${isPanen})">Lihat</button>
+        <button class="btn-sm btn-gray" onclick="lihatRiwayatJadwal('${j.id}','${j.lahan}','${j.jenis}',${isPanen})">📋 Riwayat</button>
         <button class="btn-sm btn-red" onclick="hapusItem('jadwal_aktif','${j.id}','Hapus jadwal ini?')">Hapus</button>
       </div>
-      <!-- Mini-form Selesai untuk non-panen -->
-      ${!selesai&&!isPanen?`<div id="fselesai-${j.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
-        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📝 Catat kegiatan: ${j.jenis}</div>
-        <div class="grid2" style="margin-bottom:8px">
-          <div class="form-group" style="margin:0">
-            <label>Nama produk / detail</label>
-            <input type="text" id="fs-detail-${j.id}" placeholder="cth: NPK Majemuk 16-16-16" value="${j.detail||''}">
-          </div>
-          <div class="form-group" style="margin:0">
-            <label>Jumlah (kg / liter)</label>
-            <input type="number" id="fs-qty-${j.id}" placeholder="cth: 25" min="0" step="0.5">
-          </div>
-        </div>
-        <div class="grid2" style="margin-bottom:8px">
-          <div class="form-group" style="margin:0">
-            <label>Harga satuan (Rp/kg)</label>
-            <input type="number" id="fs-harga-${j.id}" placeholder="cth: 8500" min="0">
-          </div>
-          <div class="form-group" style="margin:0">
-            <label>Total biaya (Rp)</label>
-            <input type="number" id="fs-biaya-${j.id}" placeholder="otomatis / isi manual" min="0">
-          </div>
-        </div>
-        <div class="form-group" style="margin-bottom:8px">
-          <label>Keterangan tambahan</label>
-          <input type="text" id="fs-ket-${j.id}" placeholder="cth: aplikasi merata, cuaca cerah">
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-green btn-sm" style="flex:1" onclick="tandaiSelesai('${j.id}')">✅ Simpan & Selesai</button>
-          <button class="btn btn-gray btn-sm" onclick="document.getElementById('fselesai-${j.id}').style.display='none'">Batal</button>
-        </div>
-      </div>`:''}
       <div id="jview-${j.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;font-size:13px">
         <div style="color:var(--text3);font-size:12px">Memuat…</div>
       </div>
