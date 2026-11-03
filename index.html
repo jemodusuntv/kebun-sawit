@@ -888,19 +888,31 @@ const bukaDetailLahan=(nama)=>{
     detail:l.detail||l.jenis,nilai:0,
     biaya:l.biaya||0,keterangan:l.keterangan||'',sumber:'log'
   }));
-  // Jadwal yang tanggal_due-nya sudah lewat = dianggap sudah dilakukan
-  const jadwalLampau=cache.jadwal.filter(j=>j.lahan===nama&&j.tanggal_due<today).map(j=>({
-    tanggal:j.tanggal_due,jenis:j.jenis,
-    detail:j.detail||j.jenis,nilai:0,
-    biaya:0,keterangan:'(dari jadwal)',sumber:'jadwal'
-  }));
-  // Gabung, dedup berdasarkan tanggal+jenis+detail (hindari duplikat jika sudah ada di log)
+  // Rekonstruksi riwayat dari jadwal aktif:
+  // (A) jadwal yang tanggal_due sudah lewat
+  // (B) jadwal yang belum lewat tapi punya interval → hitung mundur 1 periode = kapan terakhir dilakukan
+  const jadwalRiwayat=[];
+  cache.jadwal.filter(j=>j.lahan===nama&&j.status==='pending').forEach(j=>{
+    if(j.tanggal_due<today){
+      // Langsung jadikan riwayat
+      jadwalRiwayat.push({tanggal:j.tanggal_due,jenis:j.jenis,detail:j.detail||j.jenis,nilai:0,biaya:0,keterangan:'(estimasi)',sumber:'jadwal'});
+    } else if(j.interval_bulan){
+      // Hitung mundur: tanggal_due - interval = perkiraan terakhir dilakukan
+      const due=new Date(j.tanggal_due);
+      due.setMonth(due.getMonth()-parseInt(j.interval_bulan));
+      const tglLampau=due.toISOString().slice(0,10);
+      if(tglLampau<today){
+        jadwalRiwayat.push({tanggal:tglLampau,jenis:j.jenis,detail:j.detail||j.jenis,nilai:0,biaya:0,keterangan:'(estimasi)',sumber:'jadwal'});
+      }
+    }
+  });
+  // Gabung, dedup — log nyata menang atas estimasi jadwal
   const logKeys=new Set(logHist.map(l=>l.tanggal+'|'+l.jenis+'|'+(l.detail||'').split('—')[0].trim().toLowerCase()));
-  const jadwalLampauBersih=jadwalLampau.filter(j=>{
+  const jadwalRiwayatBersih=jadwalRiwayat.filter(j=>{
     const k=j.tanggal+'|'+j.jenis+'|'+(j.detail||'').trim().toLowerCase();
     return!logKeys.has(k);
   });
-  const allHist=[...panenHist,...logHist,...jadwalLampauBersih].sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
+  const allHist=[...panenHist,...logHist,...jadwalRiwayatBersih].sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
 
   // Statistik ringkas
   const totalPanen=(cache.realisasi||[]).filter(r=>r.lahan===nama).reduce((s,r)=>s+(r.kg_aktual||0),0);
