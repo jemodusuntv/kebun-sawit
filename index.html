@@ -946,14 +946,15 @@ const simpanJadwalForm=async()=>{
       console.error('log_kegiatan error:',logErr);
     }
 
-    // 2. Update jadwal lama yang sama jenis+lahan → ganti tanggal ke due berikutnya
-    const jadwalLama=cache.jadwal.filter(j=>j.lahan===lahan&&j.jenis===jenis&&j.status==='pending');
+    // 2. Update jadwal lama yang sama lahan+jenis+detail → geser ke due berikutnya
+    // Filter by detail juga — supaya NPK dan Dolomit tidak saling menimpa
+    const jadwalLama=cache.jadwal.filter(j=>j.lahan===lahan&&j.jenis===jenis&&j.detail===detail&&j.status==='pending');
     if(jadwalLama.length>0){
-      // Update jadwal pertama, hapus sisanya jika ada duplikat
-      await sb('jadwal_aktif','PATCH',{tanggal_due:due,interval_bulan:parseInt(interval)||null,detail},'id=eq.'+jadwalLama[0].id);
+      // Update jadwal yang sama persis, hapus duplikat jika ada
+      await sb('jadwal_aktif','PATCH',{tanggal_due:due,interval_bulan:parseInt(interval)||null},'id=eq.'+jadwalLama[0].id);
       for(let i=1;i<jadwalLama.length;i++)await sb('jadwal_aktif','DELETE',null,'id=eq.'+jadwalLama[i].id);
     } else {
-      // Belum ada jadwal jenis ini → buat baru
+      // Belum ada jadwal untuk produk ini → buat baru
       await simpanJadwal(lahan,jenis,detail,due,interval,'manual');
     }
 
