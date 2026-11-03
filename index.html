@@ -850,30 +850,6 @@ const hapusLahan=async(id,nama)=>{const ok=await showConfirm(`Hapus lahan "${nam
 
 /* ===== DETAIL LAHAN MODAL ===== */
 const tutupDetailLahan=()=>{document.getElementById('detail-lahan-modal').classList.remove('show');};
-const toggleFormRiwayatManual=(nama)=>{
-  const id='form-riwayat-manual-'+nama.replace(/\s/g,'_');
-  const el=document.getElementById(id);
-  if(el)el.style.display=el.style.display==='none'?'block':'none';
-};
-const simpanRiwayatManual=async(nama)=>{
-  const slug=nama.replace(/\s/g,'_');
-  const jenis=document.getElementById('frm-jenis-'+slug)?.value;
-  const detail=document.getElementById('frm-detail-'+slug)?.value.trim();
-  const tgl=document.getElementById('frm-tgl-'+slug)?.value;
-  const qty=parseFloat(document.getElementById('frm-qty-'+slug)?.value)||0;
-  const biaya=parseInt(document.getElementById('frm-biaya-'+slug)?.value)||0;
-  const ket=document.getElementById('frm-ket-'+slug)?.value.trim();
-  if(!tgl){showToast('Isi tanggal kegiatan');return;}
-  if(!detail){showToast('Isi detail / nama produk');return;}
-  let detailLog=detail;
-  if(qty>0)detailLog+=` — ${qty} kg`;
-  try{
-    await sb('log_kegiatan','POST',{lahan:nama,jenis,detail:detailLog,tanggal:tgl,biaya,keterangan:ket||''});
-    await reloadTable('log_kegiatan');
-    showToast('Riwayat tersimpan ✓');
-    bukaDetailLahan(nama); // refresh modal
-  }catch(e){showToast('Gagal simpan');}
-};
 const bukaDetailLahan=(nama)=>{
   const d=cache.lahan.find(l=>l.nama===nama);
   if(!d)return;
@@ -968,35 +944,7 @@ const bukaDetailLahan=(nama)=>{
       <div style="display:flex;flex-wrap:wrap;gap:4px">${jadwalHTML}</div>
     </div>
     <div class="detail-section">
-      <div class="detail-section-title" style="display:flex;justify-content:space-between;align-items:center">
-        <span>📋 Riwayat Kegiatan (${allHist.length})</span>
-        <button onclick="toggleFormRiwayatManual('${nama}')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">+ Tambah</button>
-      </div>
-      <div id="form-riwayat-manual-${nama.replace(/\s/g,'_')}" style="display:none;background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:10px">
-        <div class="form-group"><label>Jenis kegiatan</label>
-          <select id="frm-jenis-${nama.replace(/\s/g,'_')}">
-            <option>Pupuk</option><option>Herbisida</option><option>Pruning</option><option>Panen</option><option>Lainnya</option>
-          </select>
-        </div>
-        <div class="form-group"><label>Detail / Nama produk</label>
-          <input type="text" id="frm-detail-${nama.replace(/\s/g,'_')}" placeholder="misal: NPK Majemuk, Glifosat, dsb">
-        </div>
-        <div class="form-group"><label>Tanggal kegiatan</label>
-          <input type="date" id="frm-tgl-${nama.replace(/\s/g,'_')}" value="${new Date().toISOString().slice(0,10)}">
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div class="form-group"><label>Jumlah (kg/liter)</label>
-            <input type="number" id="frm-qty-${nama.replace(/\s/g,'_')}" placeholder="0" min="0">
-          </div>
-          <div class="form-group"><label>Biaya (Rp)</label>
-            <input type="number" id="frm-biaya-${nama.replace(/\s/g,'_')}" placeholder="0" min="0">
-          </div>
-        </div>
-        <div class="form-group"><label>Keterangan (opsional)</label>
-          <input type="text" id="frm-ket-${nama.replace(/\s/g,'_')}" placeholder="opsional">
-        </div>
-        <button class="btn btn-green" style="margin-top:4px" onclick="simpanRiwayatManual('${nama}')">💾 Simpan Riwayat</button>
-      </div>
+      <div class="detail-section-title">📋 Riwayat Kegiatan (${allHist.length})</div>
       ${riwayatHTML}
     </div>
     <div style="margin-top:4px;display:flex;gap:8px">
@@ -1245,60 +1193,6 @@ const tandaiSelesai=async id=>{
 };
 const filterJadwal=(mode,btn)=>{filterJadwalMode=mode;document.querySelectorAll('#jdw-filter-row .filter-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderJadwal();};
 const filterJadwalByJenis=(jenis,btn)=>{filterJadwalJenis=jenis;document.querySelectorAll('#jdw-filter-jenis-row .filter-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderJadwal();};
-const lihatRiwayatJadwal=async(id,lahan,jenis,isPanen)=>{
-  const el=document.getElementById('jview-'+id);if(!el)return;
-  const visible=el.style.display!=='none';
-  if(visible){el.style.display='none';return;}
-  el.style.display='block';
-  el.innerHTML='<div style="color:var(--text3);font-size:12px">Memuat…</div>';
-  // Selalu reload log_kegiatan agar data terkini
-  try{await reloadTable('log_kegiatan');}catch(e){
-    el.innerHTML=`<div style="color:var(--red);font-size:12px">⚠️ Tabel log_kegiatan tidak ditemukan di Supabase.<br>Buat dulu via SQL Editor.</div>`;return;
-  }
-  if(isPanen){
-    const lastPanen=[...cache.realisasi].filter(r=>r.lahan===lahan).sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal))[0];
-    el.innerHTML=lastPanen
-      ?`<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📊 Panen Terakhir</div>
-        <div class="info-row"><span style="color:var(--text2)">Tanggal panen</span><span style="font-weight:600">${lastPanen.tanggal}</span></div>
-        <div class="info-row"><span style="color:var(--text2)">Hasil</span><span style="font-weight:700;color:var(--green)">${fmt(lastPanen.kg_aktual)} kg</span></div>
-        <div class="info-row" style="border:none"><span style="color:var(--text2)">Pendapatan bersih</span><span style="color:var(--orange);font-weight:600">${fmtK(lastPanen.pendapatan_bersih!=null?lastPanen.pendapatan_bersih:lastPanen.pendapatan)}</span></div>`
-      :'<div style="color:var(--text3)">Belum ada data panen</div>';
-  } else {
-    const semuaLog=cache.log||[];
-    const riwLog=semuaLog.filter(l=>l.lahan===lahan&&l.jenis===jenis).sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal)).slice(0,5);
-    if(!riwLog.length){
-      // Tampil info debug: total log di cache & berapa yang ada untuk lahan ini
-      const totalLog=semuaLog.length;
-      const lahanLog=semuaLog.filter(l=>l.lahan===lahan).length;
-      el.innerHTML=`<div style="color:var(--text3)">Belum ada riwayat ${jenis} di lahan ini</div>
-        <div style="color:var(--text3);font-size:11px;margin-top:6px">
-          (Total log: ${totalLog} baris · Lahan ini: ${lahanLog} baris · Jenis: ${jenis})
-        </div>`;
-    } else {
-      // Hitung total biaya semua riwayat
-      const totalBiayaLog=riwLog.reduce((s,l)=>s+(l.biaya||0),0);
-      const lastLog=riwLog[0];
-      el.innerHTML=`
-        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Riwayat ${jenis} — ${riwLog.length} kegiatan terakhir</div>
-        ${riwLog.map((l,i)=>{
-          // Parse detail: "NPK Majemuk — 25 kg @ Rp8.500/kg"
-          const parts=l.detail||jenis;
-          return`<div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:6px${i===riwLog.length-1?';margin-bottom:0':''}">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-              <span style="font-weight:700;color:var(--text)">${l.tanggal}</span>
-              ${l.biaya>0?`<span style="color:var(--red);font-weight:700;font-size:13px">${fmtK(l.biaya)}</span>`:'<span style="color:var(--text3);font-size:11px">Gratis</span>'}
-            </div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:${l.keterangan?'3px':'0'}">${parts}</div>
-            ${l.keterangan&&l.keterangan!=='Dicatat via tombol Selesai'?`<div style="font-size:11px;color:var(--text3);font-style:italic">${l.keterangan}</div>`:''}
-          </div>`;
-        }).join('')}
-        ${totalBiayaLog>0?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px">
-          <span style="color:var(--text2)">Total biaya (${riwLog.length}×)</span>
-          <span style="font-weight:700;color:var(--red)">${fmtK(totalBiayaLog)}</span>
-        </div>`:''}`;
-    }
-  }
-};
 const renderJadwal=()=>{
   let data=[...cache.jadwal].sort((a,b)=>new Date(a.tanggal_due)-new Date(b.tanggal_due));
   const today=new Date();today.setHours(0,0,0,0);
@@ -1348,11 +1242,8 @@ const renderJadwal=()=>{
       </div>
       <div class="item-actions">
         ${isPanen&&!selesai?`<button class="btn-sm btn-orange" onclick="document.getElementById('form-panen-${j.id}').style.display=document.getElementById('form-panen-${j.id}').style.display==='none'?'block':'none'">🌿 Input Panen</button>`:''}
-        <button class="btn-sm btn-gray" onclick="lihatRiwayatJadwal('${j.id}','${j.lahan}','${j.jenis}',${isPanen})">📋 Riwayat</button>
+        <button class="btn-sm btn-gray" onclick="bukaDetailLahan('${j.lahan}')">📋 Detail Lahan</button>
         <button class="btn-sm btn-red" onclick="hapusItem('jadwal_aktif','${j.id}','Hapus jadwal ini?')">Hapus</button>
-      </div>
-      <div id="jview-${j.id}" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;font-size:13px">
-        <div style="color:var(--text3);font-size:12px">Memuat…</div>
       </div>
       ${formPanen}
     </div>`;
